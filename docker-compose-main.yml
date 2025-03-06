@@ -1,0 +1,28 @@
+############### NETWORKS
+networks:
+  default:
+    driver: bridge
+  socket_proxy:
+    name: socket_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.91.0/24
+  t3_proxy:
+    name: t3_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.90.0/24
+
+include:
+  ############### SERVICES
+  # CORE
+  - compose/socket-proxy.yml
+  - compose/traefik.yml
+  # APPS
+  - compose/portainer.yml
+  - compose/homepage.yml
+  # MAINTENANCE
+  - compose/docker-gc.yml
+

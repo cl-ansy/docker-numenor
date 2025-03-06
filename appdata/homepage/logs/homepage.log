@@ -1,0 +1,14 @@
+[2025-03-06T17:30:37.296Z] info: docker.yaml was copied to the config folder
+[2025-03-06T17:30:37.299Z] info: services.yaml was copied to the config folder
+[2025-03-06T17:30:37.300Z] info: bookmarks.yaml was copied to the config folder
+[2025-03-06T17:30:37.301Z] info: widgets.yaml was copied to the config folder
+[2025-03-06T17:30:37.301Z] info: custom.css was copied to the config folder
+[2025-03-06T17:30:37.302Z] info: custom.js was copied to the config folder
+[2025-03-06T17:30:37.438Z] info: kubernetes.yaml was copied to the config folder
+[2025-03-06T18:44:38.913Z] error: undefined
+[2025-03-06T18:44:39.207Z] error: undefined
+[2025-03-06T18:44:43.953Z] error: undefined
+[2025-03-06T18:44:49.246Z] error: undefined
+[2025-03-06T18:44:54.785Z] error: undefined
+[2025-03-06T18:45:10.644Z] error: undefined
+[2025-03-06T18:45:14.285Z] error: undefined
