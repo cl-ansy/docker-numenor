@@ -1,28 +1,47 @@
-############### NETWORKS
 networks:
-  default:
-    driver: bridge
-  socket_proxy:
-    name: socket_proxy
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 192.168.91.0/24
   t3_proxy:
     name: t3_proxy
     driver: bridge
     ipam:
       config:
         - subnet: 192.168.90.0/24
+  socket_proxy:
+    name: socket_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.91.0/24
+  db:
+    name: db
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.92.0/24
+
+secrets:
+  postgres_default_password:
+    file: $DOCKERDIR/secrets/postgres_default_password
+  authentik_postgres_user:
+    file: $DOCKERDIR/secrets/authentik_postgres_user
+  authentik_postgres_password:
+    file: $DOCKERDIR/secrets/authentik_postgres_password
+  authentik_secret_key:
+    file: $DOCKERDIR/secrets/authentik_secret_key
 
 include:
-  ############### SERVICES
   # CORE
   - compose/socket-proxy.yml
   - compose/traefik.yml
   # APPS
   - compose/portainer.yml
   - compose/homepage.yml
+  - compose/authentik.yml
+  # DB
+  - compose/redis.yml
+  - compose/postgres.yml
+  # MANAGEMENT
+  - compose/whoami.yml
+  - compose/dozzle.yml
   # MAINTENANCE
   - compose/docker-gc.yml
 

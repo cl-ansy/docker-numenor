@@ -1,5 +1,5 @@
+# Docker-GC - Automatic Docker Garbage Collection
 services:
-  # Docker-GC - Automatic Docker Garbage Collection
   docker-gc:
     container_name: docker-gc
     image: clockworksoul/docker-gc-cron:latest

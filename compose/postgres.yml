@@ -1,0 +1,26 @@
+# PostgreSQL - Database
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:16-alpine
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d postgres -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    networks:
+      - db
+    # ports:
+    #   - $POSTGRES_PORT:5432
+    volumes:
+      - $DOCKERDIR/appdata/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=/run/secrets/postgres_default_password
+    secrets:
+      - postgres_default_password
+

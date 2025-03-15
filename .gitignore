@@ -2,11 +2,10 @@
 
 !appdata
 appdata/*
+
 !appdata/docker-gc
 !appdata/homepage
-!appdata/traefik3
-
-!compose
+!appdata/traefik
 
 !logs
 logs/*

@@ -1,5 +1,5 @@
+# Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
 services:
-  # Docker Socket Proxy - Security Enchanced Proxy for Docker Socket
   socket-proxy:
     container_name: socket-proxy
     image: tecnativa/docker-socket-proxy:latest
@@ -11,7 +11,7 @@ services:
         ipv4_address: 192.168.91.254
     privileged: true
     ports:
-      - 127.0.0.1:2375:2375
+      - 127.0.0.1:2375:2375 # Port 2375 should be bound to internal IP
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -27,7 +27,7 @@ services:
       # Security critical
       - AUTH=0
       - SECRETS=0
-      - POST=1 # Watchtower
+      - POST=0
       # Not always needed
       - BUILD=0
       - COMMIT=0

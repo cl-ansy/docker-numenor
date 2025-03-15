@@ -1,0 +1,16 @@
+services:
+  whoami:
+    container_name: whoami
+    image: traefik/whoami:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.whoami-rtr.rule=Host(`whoami.$DOMAINNAME`)
+      - traefik.http.routers.whoami-rtr.service=whoami-svc
+      - traefik.http.routers.traefik-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.whoami-svc.loadbalancer.server.port=80
+

@@ -1,0 +1,82 @@
+services:
+  authentik:
+    container_name: authentik
+    image: ghcr.io/goauthentik/server:2025.2.1
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+      - db
+    # ports:
+    #  - 9000:9000
+    command: server
+    user: ${PUID}:${PGID}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - AUTHENTIK_REDIS__HOST
+      - AUTHENTIK_POSTGRESQL__HOST
+      - AUTHENTIK_POSTGRESQL__NAME
+      - AUTHENTIK_POSTGRESQL__USER
+      - AUTHENTIK_POSTGRESQL__PASSWORD
+      - AUTHENTIK_SECRET_KEY
+      - AUTHENTIK_LOG_LEVEL=info # debug, info, warning, error, trace
+      - AUTHENTIK_DISABLE_STARTUP_ANALYTICS=true
+      - AUTHENTIK_DISABLE_UPDATE_CHECK=false
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=false
+    secrets:
+      - authentik_postgres_user
+      - authentik_postgres_password
+      - authentik_secret_key
+    volumes:
+      - $DOCKERDIR/appdata/authentik/media:/media
+      - $DOCKERDIR/appdata/authentik/custom-templates:/templates
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.authentik-rtr.rule=Host(`auth.$DOMAINNAME`)
+      # Catch any subdomain using individual application forward authentication
+      - traefik.http.routers.authentik-output-rtr.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.${DOMAINNAME}`) && PathPrefix(`/outpost.goauthentik.io/`)
+      - traefik.http.routers.authentik-rtr.service=authentik-svc
+      - traefik.http.services.authentik-svc.loadbalancer.server.port=9000
+
+  authentik-worker:
+    container_name: authentik-worker
+    image: ghcr.io/goauthentik/server:2025.2.1
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+      - socket_proxy
+      - db
+    command: worker
+    user: ${PUID}:${PGID}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DOCKER_HOST
+      - AUTHENTIK_REDIS__HOST
+      - AUTHENTIK_POSTGRESQL__HOST
+      - AUTHENTIK_POSTGRESQL__NAME
+      - AUTHENTIK_POSTGRESQL__USER
+      - AUTHENTIK_POSTGRESQL__PASSWORD
+      - AUTHENTIK_SECRET_KEY
+      - AUTHENTIK_LOG_LEVEL=info
+      - AUTHENTIK_DISABLE_STARTUP_ANALYTICS=true
+      - AUTHENTIK_DISABLE_UPDATE_CHECK=false
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=false
+    secrets:
+      - authentik_postgres_user
+      - authentik_postgres_password
+      - authentik_secret_key
+    volumes:
+      - $DOCKERDIR/appdata/authentik/media:/media
+      - $DOCKERDIR/appdata/authentik/custom-templates:/templates
+

@@ -1,5 +1,4 @@
 services:
-  # Homepage - Application Dashboard
   homepage:
     container_name: homepage
     image: ghcr.io/gethomepage/homepage:latest
@@ -9,19 +8,18 @@ services:
     networks:
       - t3_proxy
       - socket_proxy
-    ports:
-      - 3000:3000
     volumes:
       - $DOCKERDIR/appdata/homepage:/app/config
+      - $DOCKERDIR/logs/homepage:/app/logs
     environment:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
     labels:
       - traefik.enable=true
-      - traefik.http.routers.homepage-rtr.entrypoints=web
       - traefik.http.routers.homepage-rtr.rule=Host(`homepage.$DOMAINNAME`)
       - traefik.http.routers.homepage-rtr.service=homepage-svc
+      - traefik.http.routers.traefik-rtr.middlewares=chain-authentik@file
       - traefik.http.services.homepage-svc.loadbalancer.server.port=3000
       - traefik.docker.network=t3_proxy
 

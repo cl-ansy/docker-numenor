@@ -6,3 +6,5 @@
 #   openweathermap: openweathermapapikey
 #   weatherapi: weatherapiapikey
 
+logpath: /app
+

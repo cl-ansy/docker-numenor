@@ -1,5 +1,5 @@
+# Traefik 3 Reverse Proxy
 services:
-  # Traefik 3 - Reverse Proxy
   traefik:
     container_name: traefik
     image: traefik:3.3.4
@@ -10,19 +10,24 @@ services:
       t3_proxy:
         ipv4_address: 192.168.90.254
       socket_proxy:
+    ports:
+      - 80:80
+      - 443:443
     command:
-      - --global.checkNewVersion=false
+      - --global.checkNewVersion=true
       - --global.sendAnonymousUsage=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --entrypoints.traefik.address=:8080
-      # - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      # - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.asDefault=true
+      - --entrypoints.websecure.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
+      - --serversTransport.insecureSkipVerify=true
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
       - --api=true
       - --api.dashboard=true
-      - --api.insecure=true
-      # - --entrypoints.websecure.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
+      # - --api.insecure=true
       - --log=true
       - --log.filePath=/logs/traefik.log
       - --log.level=INFO
@@ -34,39 +39,24 @@ services:
       - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --providers.docker.exposedByDefault=false
       - --providers.docker.network=t3_proxy
-      # - --providers.websecure.http.tls=true
-      # - --providers.websecure.http.tls.options=tls-opts@file
       - --providers.file.directory=/rules
       - --providers.file.watch=true
-    ports:
-      - target: 80
-        published: 80
-        protocol: tcp
-        mode: host
-      - target: 443
-        published: 443
-        protocol: tcp
-        mode: host
-      - target: 8080
-        published: 8080
-        protocol: tcp
-        mode: host
     volumes:
-      - $DOCKERDIR/appdata/traefik3/rules/$HOSTNAME:/rules
-      # - $DOCKERDIR/appdata/traefik3/acme/acme.json:/acme.json
-      - $DOCKERDIR/logs/$HOSTNAME/traefik:/logs
+      - $DOCKERDIR/appdata/traefik/rules:/rules
+      - $DOCKERDIR/logs/traefik:/logs
     environment:
       - TZ=$TZ
       - DOMAINNAME
     labels:
       - traefik.enable=true
-      - traefik.http.routers.traefik-rtr.entrypoints=web
       - traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME`)
       - traefik.http.routers.traefik-rtr.service=api@internal
+      - traefik.http.routers.traefik-rtr.middlewares=chain-authentik@file
       - homepage.group=Management
       - homepage.name=Traefik
       - homepage.icon=traefik.png
-      - homepage.href=http://traefik.$DOMAINNAME
-      - homepage.widget.type=traefik
-      - homepage.widget.url=http://traefik.$DOMAINNAME
+      - homepage.href=https://traefik.$DOMAINNAME
+      # Widget disabled until homepage can bypass auth for traefik api
+      # - homepage.widget.type=traefik
+      # - homepage.widget.url=https://traefik.$DOMAINNAME
 
