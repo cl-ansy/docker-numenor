@@ -7,15 +7,7 @@ appdata/*
 !appdata/homepage
 !appdata/traefik
 
-!logs
 logs/*
-
-!scripts
-scripts/*
 
 !secrets
 secrets/*
-
-!shared
-shared/*
-
