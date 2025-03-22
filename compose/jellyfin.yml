@@ -1,0 +1,27 @@
+# Jellyfin - Media Server
+services:
+  jellyfin:
+    container_name: jellyfin
+    image: jellyfin/jellyfin:latest
+    networks:
+      - t3_proxy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    user: $PUID:$PGID
+    # ports:
+    #   - "8096:8096" # HTTP
+    #   - "8920:8920" # HTTPS
+    environment:
+      UMASK_SET: 022
+      TZ: $TZ
+    volumes:
+      - $DOCKERDIR/appdata/jellyfin:/config
+      - $SHAREDDIR/media:/data/media
+      - $DOWNLOADDIR:/data/downloads
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jellyfin-rtr.rule=Host(`jellyfin.$DOMAINNAME`)
+      - traefik.http.routers.jellyfin-rtr.service=jellyfin-svc
+      - traefik.http.routers.jellyfin-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.jellyfin-svc.loadbalancer.server.port=8096

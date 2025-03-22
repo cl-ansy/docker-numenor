@@ -19,6 +19,6 @@ services:
       - traefik.enable=true
       - traefik.http.routers.dozzle-rtr.rule=Host(`dozzle.$DOMAINNAME`)
       - traefik.http.routers.dozzle-rtr.service=dozzle-svc
-      - traefik.http.routers.traefik-rtr.middlewares=chain-authentik@file
+      - traefik.http.routers.dozzle-rtr.middlewares=chain-authentik@file
       - traefik.http.services.dozzle-svc.loadbalancer.server.port=8080
 

@@ -32,10 +32,12 @@ include:
   # CORE
   - compose/socket-proxy.yml
   - compose/traefik.yml
+  - compose/authentik.yml
+  # MEDIA
+  # - compose/jellyfin.yml
   # APPS
   - compose/portainer.yml
   - compose/homepage.yml
-  - compose/authentik.yml
   # DB
   # MANAGEMENT
   - compose/whoami.yml
