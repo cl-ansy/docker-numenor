@@ -37,8 +37,6 @@ include:
   - compose/homepage.yml
   - compose/authentik.yml
   # DB
-  - compose/redis.yml
-  - compose/postgres.yml
   # MANAGEMENT
   - compose/whoami.yml
   - compose/dozzle.yml

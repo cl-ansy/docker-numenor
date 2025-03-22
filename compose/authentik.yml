@@ -1,6 +1,6 @@
 services:
-  authentik:
-    container_name: authentik
+  authentik-server:
+    container_name: authentik-server
     image: ghcr.io/goauthentik/server:2025.2.1
     security_opt:
       - no-new-privileges:true
@@ -8,23 +8,23 @@ services:
     networks:
       - t3_proxy
       - db
-    # ports:
-    #  - 9000:9000
     command: server
     user: ${PUID}:${PGID}
     depends_on:
-      postgres:
+      authentik-postgres:
         condition: service_healthy
-      redis:
+      authentik-redis:
         condition: service_healthy
     environment:
       - AUTHENTIK_REDIS__HOST
+      - AUTHENTIK_REDIS__PORT
       - AUTHENTIK_POSTGRESQL__HOST
+      - AUTHENTIK_POSTGRESQL__PORT
       - AUTHENTIK_POSTGRESQL__NAME
-      - AUTHENTIK_POSTGRESQL__USER
-      - AUTHENTIK_POSTGRESQL__PASSWORD
-      - AUTHENTIK_SECRET_KEY
-      - AUTHENTIK_LOG_LEVEL=info # debug, info, warning, error, trace
+      - AUTHENTIK_POSTGRESQL__USER=file:///run/secrets/authentik_postgres_user
+      - AUTHENTIK_POSTGRESQL__PASSWORD=file:///run/secrets/authentik_postgres_password
+      - AUTHENTIK_SECRET_KEY=file:///run/secrets/authentik_secret_key
+      - AUTHENTIK_LOG_LEVEL=info
       - AUTHENTIK_DISABLE_STARTUP_ANALYTICS=true
       - AUTHENTIK_DISABLE_UPDATE_CHECK=false
       - AUTHENTIK_ERROR_REPORTING__ENABLED=false
@@ -56,18 +56,20 @@ services:
     command: worker
     user: ${PUID}:${PGID}
     depends_on:
-      postgres:
+      authentik-postgres:
         condition: service_healthy
-      redis:
+      authentik-redis:
         condition: service_healthy
     environment:
       - DOCKER_HOST
       - AUTHENTIK_REDIS__HOST
+      - AUTHENTIK_REDIS__PORT
       - AUTHENTIK_POSTGRESQL__HOST
+      - AUTHENTIK_POSTGRESQL__PORT
       - AUTHENTIK_POSTGRESQL__NAME
-      - AUTHENTIK_POSTGRESQL__USER
-      - AUTHENTIK_POSTGRESQL__PASSWORD
-      - AUTHENTIK_SECRET_KEY
+      - AUTHENTIK_POSTGRESQL__USER=file:///run/secrets/authentik_postgres_user
+      - AUTHENTIK_POSTGRESQL__PASSWORD=file:///run/secrets/authentik_postgres_password
+      - AUTHENTIK_SECRET_KEY=file:///run/secrets/authentik_secret_key
       - AUTHENTIK_LOG_LEVEL=info
       - AUTHENTIK_DISABLE_STARTUP_ANALYTICS=true
       - AUTHENTIK_DISABLE_UPDATE_CHECK=false
@@ -79,4 +81,47 @@ services:
     volumes:
       - $DOCKERDIR/appdata/authentik/media:/media
       - $DOCKERDIR/appdata/authentik/custom-templates:/templates
+
+  authentik-postgres:
+    container_name: authentik-postgres
+    image: postgres:16-alpine
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    command: -p $AUTHENTIK_POSTGRESQL__PORT
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    networks:
+      - db
+    volumes:
+      - $DOCKERDIR/appdata/authentik-postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=$AUTHENTIK_POSTGRESQL__NAME
+      - POSTGRES_USER_FILE=/run/secrets/authentik_postgres_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/authentik_postgres_password
+    secrets:
+      - authentik_postgres_user
+      - authentik_postgres_password
+
+  authentik-redis:
+    container_name: authentik-redis
+    image: docker.io/library/redis:alpine
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    command: --save 60 1 --loglevel warning --port $AUTHENTIK_REDIS__PORT
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    networks:
+      - db
+    volumes:
+      - $DOCKERDIR/appdata/authentik-redis:/data
 
