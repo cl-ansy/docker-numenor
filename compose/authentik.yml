@@ -1,6 +1,6 @@
 services:
-  authentik-server:
-    container_name: authentik-server
+  authentik:
+    container_name: authentik
     image: ghcr.io/goauthentik/server:2025.2.1
     security_opt:
       - no-new-privileges:true

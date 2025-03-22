@@ -1,4 +1,5 @@
 # Jellyfin - Media Server
+# OAuth config: https://docs.goauthentik.io/integrations/services/jellyfin/#oidc-configuration
 services:
   jellyfin:
     container_name: jellyfin
@@ -23,5 +24,4 @@ services:
       - traefik.enable=true
       - traefik.http.routers.jellyfin-rtr.rule=Host(`jellyfin.$DOMAINNAME`)
       - traefik.http.routers.jellyfin-rtr.service=jellyfin-svc
-      - traefik.http.routers.jellyfin-rtr.middlewares=chain-authentik@file
       - traefik.http.services.jellyfin-svc.loadbalancer.server.port=8096

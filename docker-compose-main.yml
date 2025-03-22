@@ -34,7 +34,7 @@ include:
   - compose/traefik.yml
   - compose/authentik.yml
   # MEDIA
-  # - compose/jellyfin.yml
+  - compose/jellyfin.yml
   # APPS
   - compose/portainer.yml
   - compose/homepage.yml
