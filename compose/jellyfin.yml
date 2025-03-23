@@ -19,7 +19,7 @@ services:
     volumes:
       - $DOCKERDIR/appdata/jellyfin:/config
       - $SHAREDDIR/media:/data/media
-      - $DOWNLOADDIR:/data/downloads
+      - $DOWNLOADSDIR:/data/downloads
     labels:
       - traefik.enable=true
       - traefik.http.routers.jellyfin-rtr.rule=Host(`jellyfin.$DOMAINNAME`)

@@ -1,0 +1,28 @@
+# Radarr - Movie management
+services:
+  radarr:
+    container_name: radarr
+    image: lscr.io/linuxserver/radarr:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+      - downloaders
+    # ports:
+    #   - 7878:7878
+    volumes:
+      - $DOCKERDIR/appdata/radarr:/config
+      - $SHAREDDIR/media/Movies:/data/movies
+      - $DOWNLOADSDIR:/data/downloads
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME`)
+      - traefik.http.routers.radarr-rtr.service=radarr-svc
+      - traefik.http.routers.radarr-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.radarr-svc.loadbalancer.server.port=7878

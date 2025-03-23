@@ -17,6 +17,12 @@ networks:
     ipam:
       config:
         - subnet: 192.168.92.0/24
+  downloaders:
+    name: downloaders
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.93.0/24
 
 secrets:
   postgres_default_password:
@@ -38,6 +44,11 @@ include:
   # APPS
   - compose/portainer.yml
   - compose/homepage.yml
+  # DOWNLOADERS
+  - compose/sabnzbd.yml
+  # PVRS
+  - compose/radarr.yml
+  - compose/sonarr.yml
   # DB
   # MANAGEMENT
   - compose/whoami.yml

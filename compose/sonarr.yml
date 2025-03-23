@@ -1,0 +1,28 @@
+# Sonarr - TV Shows Management
+services:
+  sonarr:
+    container_name: sonarr
+    image: lscr.io/linuxserver/sonarr:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+      - downloaders
+    # ports:
+    #   - "8989:8989"
+    volumes:
+      - $DOCKERDIR/appdata/sonarr:/config
+      - $SHAREDDIR/media/Shows:/data/shows
+      - $DOWNLOADSDIR:/data/downloads
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME`)
+      - traefik.http.routers.sonarr-rtr.service=sonarr-svc
+      - traefik.http.routers.sonarr-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.sonarr-svc.loadbalancer.server.port=8989

@@ -1,0 +1,27 @@
+# SABnzbd - Binary newsgrabber (NZB downloader)
+services:
+  sabnzbd:
+    container_name: sabnzbd
+    image: lscr.io/linuxserver/sabnzbd:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+      - downloaders
+    # ports:
+    #   - "8080:8080"
+    volumes:
+      - $DOCKERDIR/appdata/sabnzbd:/config
+      - $DOWNLOADSDIR:/data/downloads
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+      UMASK_SET: 002
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME`)
+      - traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc
+      - traefik.http.routers.sabnzbd-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080
