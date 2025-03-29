@@ -17,6 +17,7 @@ services:
       PGID: $PGID
     labels:
       - traefik.enable=true
+      - traefik.http.routers.homepage-rtr.entrypoints=websecure
       - traefik.http.routers.homepage-rtr.rule=Host(`$DOMAINNAME`) || HOST(`www.$DOMAINNAME`)
       - traefik.http.routers.homepage-rtr.service=homepage-svc
       - traefik.http.routers.homepage-rtr.middlewares=chain-authentik@file

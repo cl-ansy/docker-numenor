@@ -22,6 +22,7 @@ services:
       - $DOWNLOADSDIR:/data/downloads
     labels:
       - traefik.enable=true
+      - traefik.http.routers.jellyfin-rtr.entrypoints=web,websecure
       - traefik.http.routers.jellyfin-rtr.rule=Host(`jellyfin.$DOMAINNAME`)
       - traefik.http.routers.jellyfin-rtr.service=jellyfin-svc
       - traefik.http.services.jellyfin-svc.loadbalancer.server.port=8096

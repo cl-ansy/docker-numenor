@@ -21,6 +21,7 @@ services:
       UMASK_SET: 002
     labels:
       - traefik.enable=true
+      - traefik.http.routers.sabnzbd-rtr.entrypoints=websecure
       - traefik.http.routers.sabnzbd-rtr.rule=Host(`sabnzbd.$DOMAINNAME`)
       - traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc
       - traefik.http.routers.sabnzbd-rtr.middlewares=chain-authentik@file

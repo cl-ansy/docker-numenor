@@ -37,6 +37,7 @@ services:
       - $DOCKERDIR/appdata/authentik/custom-templates:/templates
     labels:
       - traefik.enable=true
+      - traefik.http.routers.authentik-rtr.entrypoints=websecure
       - traefik.http.routers.authentik-rtr.rule=Host(`auth.$DOMAINNAME`)
       # Catch any subdomain using individual application forward authentication
       # - traefik.http.routers.authentik-outpost-rtr.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.${DOMAINNAME}`) && PathPrefix(`/outpost.goauthentik.io/`)

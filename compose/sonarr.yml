@@ -22,6 +22,7 @@ services:
       TZ: $TZ
     labels:
       - traefik.enable=true
+      - traefik.http.routers.sonarr-rtr.entrypoints=websecure
       - traefik.http.routers.sonarr-rtr.rule=Host(`sonarr.$DOMAINNAME`)
       - traefik.http.routers.sonarr-rtr.service=sonarr-svc
       - traefik.http.routers.sonarr-rtr.middlewares=chain-authentik@file

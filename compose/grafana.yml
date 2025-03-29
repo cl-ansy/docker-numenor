@@ -1,0 +1,24 @@
+# Grafana - Graphical data visualization for InfluxDB data
+services:
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+    # ports:
+    # - "3000:3000"
+    user: $PUID:$PGID
+    volumes:
+      - $DOCKERDIR/appdata/grafana:/var/lib/grafana
+    environment:
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel,grafana-piechart-panel"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.grafana-rtr.entrypoints=websecure
+      - traefik.http.routers.grafana-rtr.rule=Host(`grafana.$DOMAINNAME`)
+      - traefik.http.routers.grafana-rtr.service=grafana-svc
+      - traefik.http.routers.grafana-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.grafana-svc.loadbalancer.server.port=3000

@@ -22,6 +22,7 @@ services:
       TZ: $TZ
     labels:
       - traefik.enable=true
+      - traefik.http.routers.radarr-rtr.entrypoints=websecure
       - traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME`)
       - traefik.http.routers.radarr-rtr.service=radarr-svc
       - traefik.http.routers.radarr-rtr.middlewares=chain-authentik@file
