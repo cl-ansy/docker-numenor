@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     networks:
       - t3_proxy
+      - ops
     # ports:
     # - "3000:3000"
     user: $PUID:$PGID

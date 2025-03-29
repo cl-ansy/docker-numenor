@@ -1,0 +1,15 @@
+services:
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    security_opt:
+      - no-new-privileges:true
+    restart: "unless-stopped"
+    networks:
+      - ops
+    # ports:
+    #   - "9090:9090"
+    volumes:
+      - $DOCKERDIR/appdata/prometheus:/etc/prometheus
