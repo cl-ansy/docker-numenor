@@ -9,6 +9,7 @@ services:
     networks:
       - t3_proxy
       - downloaders
+      - ops
     # ports:
     #   - "8989:8989"
     volumes:

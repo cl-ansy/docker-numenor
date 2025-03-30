@@ -8,8 +8,6 @@ services:
     restart: "unless-stopped"
     networks:
       - ops
-    # ports:
-    #   - "9712:9712"
     environment:
       PORT: 9708
       URL: "http://radarr:7878"

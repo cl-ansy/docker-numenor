@@ -61,6 +61,7 @@ include:
   - compose/prometheus.yml
   - compose/radarr-exporter.yml
   - compose/sabnzbd-exporter.yml
+  - compose/sonarr-exporter.yml
   - compose/dozzle.yml
   # MAINTENANCE
   - compose/docker-gc.yml
