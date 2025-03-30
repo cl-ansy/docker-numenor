@@ -1,0 +1,15 @@
+# Prometheus metrics exporter for *arr suite
+services:
+  scraparr:
+    container_name: scraparr
+    image: ghcr.io/thecfu/scraparr:main
+    command: python -um scraparr
+    security_opt:
+      - no-new-privileges:true
+    restart: "unless-stopped"
+    networks:
+      - ops
+    # ports:
+    #   - "7100:7100"
+    volumes:
+      - $DOCKERDIR/appdata/scraparr:/scraparr

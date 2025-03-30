@@ -55,11 +55,12 @@ include:
   # PVRS
   - compose/radarr.yml
   - compose/sonarr.yml
-  # DB
   # MONITORING
   - compose/whoami.yml
   - compose/grafana.yml
   - compose/prometheus.yml
+  - compose/radarr-exporter.yml
+  - compose/sabnzbd-exporter.yml
   - compose/dozzle.yml
   # MAINTENANCE
   - compose/docker-gc.yml

@@ -1,0 +1,18 @@
+# Prometheus metrics exporter for sabnzbd
+services:
+  sabnzbd-exporter:
+    container_name: sabnzbd-exporter
+    image: ghcr.io/onedr0p/exportarr:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: "unless-stopped"
+    networks:
+      - ops
+    # ports:
+    #   - "9710:9710"
+    environment:
+      PORT: 9710
+      URL: "http://sabnzbd:8080"
+      APIKEY: $SABNZBD_API_KEY
+      ENABLE_ADDITIONAL_METRICS: TRUE
+    command: ["sabnzbd"]

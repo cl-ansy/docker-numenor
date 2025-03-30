@@ -6,6 +6,7 @@ appdata/*
 !appdata/docker-gc
 !appdata/homepage
 !appdata/traefik
+!appdata/prometheus
 
 logs/*
 
