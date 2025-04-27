@@ -10,8 +10,8 @@ services:
       socket_proxy:
         ipv4_address: 192.168.91.254
     privileged: true
-    ports:
-      - 127.0.0.1:2375:2375 # Port 2375 should be bound to internal IP
+    # ports:
+    #   - 127.0.0.1:2375:2375 # Port 2375 should be bound to internal IP
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -46,4 +46,3 @@ services:
       - SYSTEM=0
       - TASKS=1 # Portainer
       - VOLUMES=1 # Portainer
-

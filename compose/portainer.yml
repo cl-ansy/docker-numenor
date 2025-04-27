@@ -3,13 +3,13 @@ services:
   portainer:
     container_name: portainer
     image: portainer/portainer-ce:latest
+    command: -H tcp://socket-proxy:2375
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
     networks:
       - t3_proxy
       - socket_proxy
-    command: -H tcp://socket-proxy:2375
     volumes:
       - $DOCKERDIR/appdata/portainer/data:/data
     environment:

@@ -8,24 +8,28 @@ networks:
   socket_proxy:
     name: socket_proxy
     driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 192.168.91.0/24
   db:
     name: db
     driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 192.168.92.0/24
   downloaders:
     name: downloaders
     driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 192.168.93.0/24
   ops:
     name: ops
     driver: bridge
+    internal: true
     ipam:
       config:
         - subnet: 192.168.94.0/24

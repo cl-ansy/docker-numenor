@@ -1,0 +1,18 @@
+services:
+  jellyseerr:
+    container_name: jellyseerr
+    image: ghcr.io/fallenbagel/jellyseerr:latest
+    networks:
+      - t3_proxy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    environment:
+      - LOG_LEVEL=debug
+      - TZ=$TZ
+    #   - PORT=5055 #optional
+    # ports:
+    #   - 5055:5055
+    volumes:
+      - $DOCKERDIR/appdata/jellyfin/config:/app/config
+    restart: unless-stopped
