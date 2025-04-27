@@ -1,8 +1,8 @@
 # Grafana - Graphical data visualization for InfluxDB data
 services:
   grafana:
-    container_name: grafana
     image: grafana/grafana:latest
+    container_name: grafana
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

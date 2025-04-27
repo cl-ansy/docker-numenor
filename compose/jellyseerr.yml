@@ -1,7 +1,7 @@
 services:
   jellyseerr:
-    container_name: jellyseerr
     image: ghcr.io/fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
     networks:
       - t3_proxy
     security_opt:

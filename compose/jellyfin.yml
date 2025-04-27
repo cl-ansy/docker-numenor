@@ -2,8 +2,8 @@
 # OAuth config: https://docs.goauthentik.io/integrations/services/jellyfin/#oidc-configuration
 services:
   jellyfin:
-    container_name: jellyfin
     image: jellyfin/jellyfin:latest
+    container_name: jellyfin
     networks:
       - t3_proxy
     security_opt:

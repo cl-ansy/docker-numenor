@@ -1,8 +1,8 @@
 # Prometheus metrics exporter for sabnzbd
 services:
   sabnzbd-exporter:
-    container_name: sabnzbd-exporter
     image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sabnzbd-exporter
     security_opt:
       - no-new-privileges:true
     restart: "unless-stopped"

@@ -1,7 +1,7 @@
 services:
   prometheus:
-    container_name: prometheus
     image: prom/prometheus:latest
+    container_name: prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
     security_opt:

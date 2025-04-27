@@ -1,8 +1,8 @@
 # Prometheus metrics exporter for radarr
 services:
   radarr-exporter:
-    container_name: radarr-exporter
     image: ghcr.io/onedr0p/exportarr:latest
+    container_name: radarr-exporter
     security_opt:
       - no-new-privileges:true
     restart: "unless-stopped"

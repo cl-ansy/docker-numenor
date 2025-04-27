@@ -1,8 +1,8 @@
 # Sonarr - TV Shows Management
 services:
   sonarr:
-    container_name: sonarr
     image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

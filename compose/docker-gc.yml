@@ -1,8 +1,8 @@
 # Docker-GC - Automatic Docker Garbage Collection
 services:
   docker-gc:
-    container_name: docker-gc
     image: clockworksoul/docker-gc-cron:latest
+    container_name: docker-gc
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

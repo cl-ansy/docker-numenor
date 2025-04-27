@@ -1,7 +1,7 @@
 services:
   authentik:
+    image: ghcr.io/goauthentik/server:latest
     container_name: authentik
-    image: ghcr.io/goauthentik/server:2025.2.3
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

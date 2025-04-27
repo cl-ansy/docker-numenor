@@ -1,8 +1,8 @@
 # Prometheus metrics exporter for sonarr
 services:
   sonarr-exporter:
-    container_name: sonarr-exporter
     image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sonarr-exporter
     security_opt:
       - no-new-privileges:true
     restart: "unless-stopped"

@@ -1,8 +1,8 @@
 # Prometheus metrics exporter for *arr suite
 services:
   scraparr:
-    container_name: scraparr
     image: ghcr.io/thecfu/scraparr:main
+    container_name: scraparr
     command: python -um scraparr
     security_opt:
       - no-new-privileges:true

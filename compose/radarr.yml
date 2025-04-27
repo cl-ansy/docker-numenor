@@ -1,8 +1,8 @@
 # Radarr - Movie management
 services:
   radarr:
-    container_name: radarr
     image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

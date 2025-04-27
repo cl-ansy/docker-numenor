@@ -1,8 +1,8 @@
 # Dozzle - Real-time Docker Log Viewer
 services:
   dozzle:
-    container_name: dozzle
     image: amir20/dozzle:latest
+    container_name: dozzle
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

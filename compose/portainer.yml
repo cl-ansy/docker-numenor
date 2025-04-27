@@ -1,8 +1,8 @@
 # Portainer - WebUI for Containers
 services:
   portainer:
-    container_name: portainer
     image: portainer/portainer-ce:latest
+    container_name: portainer
     command: -H tcp://socket-proxy:2375
     security_opt:
       - no-new-privileges:true
