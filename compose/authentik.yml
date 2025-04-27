@@ -35,6 +35,9 @@ services:
     volumes:
       - $DOCKERDIR/appdata/authentik/media:/media
       - $DOCKERDIR/appdata/authentik/custom-templates:/templates
+      - $DOCKERDIR/appdata/authentik/brand/outer_tech_logo.svg:/web/dist/assets/icons/icon_left_brand.svg
+      - $DOCKERDIR/appdata/authentik/brand/icon.png:/web/dist/assets/icons/icon.png
+      - $DOCKERDIR/appdata/authentik/brand/custom.css:/web/dis/custom.css
     labels:
       - traefik.enable=true
       - traefik.http.routers.authentik-rtr.entrypoints=websecure
@@ -109,8 +112,8 @@ services:
       - authentik_postgres_password
 
   authentik-redis:
-    container_name: authentik-redis
     image: docker.io/library/redis:alpine
+    container_name: authentik-redis
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped

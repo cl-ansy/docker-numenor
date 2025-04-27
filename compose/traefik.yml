@@ -22,6 +22,7 @@ services:
       # - --entrypoints.websecure.asDefault=true
       - --entrypoints.websecure.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
       - --serversTransport.insecureSkipVerify=true
+      # TODO: force https redirect after trusted CA is setup
       # - --entrypoints.web.http.redirections.entrypoint.to=websecure
       # - --entrypoints.web.http.redirections.entrypoint.scheme=https
       # - --entrypoints.web.http.redirections.entrypoint.permanent=true
