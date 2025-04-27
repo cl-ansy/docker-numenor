@@ -37,7 +37,8 @@ services:
       - $DOCKERDIR/appdata/authentik/custom-templates:/templates
       - $DOCKERDIR/appdata/authentik/brand/outer_tech_logo.svg:/web/dist/assets/icons/icon_left_brand.svg
       - $DOCKERDIR/appdata/authentik/brand/icon.png:/web/dist/assets/icons/icon.png
-      - $DOCKERDIR/appdata/authentik/brand/custom.css:/web/dis/custom.css
+      - $DOCKERDIR/appdata/authentik/brand/flow_background.jpg:/web/dist/assets/images/flow_background.jpg
+      - $DOCKERDIR/appdata/authentik/brand/custom.css:/web/dist/custom.css
     labels:
       - traefik.enable=true
       - traefik.http.routers.authentik-rtr.entrypoints=websecure
