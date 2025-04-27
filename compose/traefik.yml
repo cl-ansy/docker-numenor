@@ -16,19 +16,22 @@ services:
     command:
       - --global.checkNewVersion=true
       - --global.sendAnonymousUsage=false
+
       - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+
       - --entrypoints.websecure.address=:443
-      - --entrypoints.websecure.http.tls=true
-      # - --entrypoints.websecure.asDefault=true
       - --entrypoints.websecure.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
-      - --serversTransport.insecureSkipVerify=true
-      # TODO: force https redirect after trusted CA is setup
-      # - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      # - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.http.tls=true
+      - --entrypoints.websecure.http.tls.certresolver=dns-cloudflare
+      - --entrypoints.websecure.http.tls.domains[0].main=$DOMAINNAME
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.$DOMAINNAME
+
       - --api=true
       - --api.dashboard=true
-      # - --api.insecure=true
+
       - --log=true
       - --log.filePath=/logs/traefik.log
       - --log.level=INFO
@@ -36,18 +39,31 @@ services:
       - --accessLog.filePath=/logs/access.log
       - --accessLog.bufferingSize=100
       - --accessLog.filters.statusCodes=200-299,400-499,500-599
+
       - --providers.docker=true
       - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --providers.docker.exposedByDefault=false
       - --providers.docker.network=t3_proxy
+
       - --providers.file.directory=/rules
       - --providers.file.watch=true
+
+      - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-v02.api.letsencrypt.org/directory # production (default)
+      # - --certificatesResolvers.dns-cloudflare.acme.caServer=https://acme-staging-v02.api.letsencrypt.org/directory # testing
+      - --certificatesResolvers.dns-cloudflare.acme.storage=/acme.json
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.provider=cloudflare
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.resolvers=1.1.1.1:53,1.0.0.1:53
+      - --certificatesResolvers.dns-cloudflare.acme.dnsChallenge.delayBeforeCheck=10 # To delay DNS check and reduce LE hitrate
     volumes:
       - $DOCKERDIR/appdata/traefik/rules:/rules
+      - $DOCKERDIR/appdata/traefik/acme/acme.json:/acme.json # Certs File, must be 600
       - $DOCKERDIR/logs/traefik:/logs
     environment:
       - TZ=$TZ
+      - CF_DNS_API_TOKEN_FILE=/run/secrets/cf_dns_api_token
       - DOMAINNAME
+    secrets:
+      - cf_dns_api_token
     labels:
       - traefik.enable=true
       - traefik.http.routers.traefik-rtr.entrypoints=websecure

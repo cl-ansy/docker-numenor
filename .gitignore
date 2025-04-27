@@ -9,6 +9,8 @@ appdata/authentik/*
 !appdata/docker-gc
 !appdata/homepage
 !appdata/traefik
+appdata/traefik/*
+!appdata/traefik/rules
 !appdata/prometheus
 
 logs/*

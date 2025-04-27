@@ -43,6 +43,8 @@ secrets:
     file: $DOCKERDIR/secrets/authentik_postgres_password
   authentik_secret_key:
     file: $DOCKERDIR/secrets/authentik_secret_key
+  cf_dns_api_token:
+    file: $DOCKERDIR/secrets/cf_dns_api_token
 
 include:
   # CORE
