@@ -8,11 +8,14 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     environment:
-      - LOG_LEVEL=debug
+      - LOG_LEVEL=info
       - TZ=$TZ
-    #   - PORT=5055 #optional
-    # ports:
-    #   - 5055:5055
     volumes:
-      - $DOCKERDIR/appdata/jellyfin/config:/app/config
-    restart: unless-stopped
+      - $DOCKERDIR/appdata/jellyseerr:/app/config
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.jellyseerr-rtr.entrypoints=websecure
+      - traefik.http.routers.jellyseerr-rtr.rule=Host(`jellyseerr.$DOMAINNAME`)
+      - traefik.http.routers.jellyseerr-rtr.service=jellyseerr-svc
+      - traefik.http.routers.jellyseerr-rtr.middlewares=chain-no-auth@file
+      - traefik.http.services.jellyseerr-svc.loadbalancer.server.port=5055

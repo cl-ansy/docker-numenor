@@ -113,7 +113,7 @@ services:
       - authentik_postgres_password
 
   authentik-redis:
-    image: docker.io/library/redis:alpine
+    image: docker.io/library/redis:7-alpine
     container_name: authentik-redis
     security_opt:
       - no-new-privileges:true

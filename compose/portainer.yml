@@ -25,6 +25,6 @@ services:
       - homepage.group=Management
       - homepage.name=Portainer
       - homepage.icon=portainer.png
-      - homepage.href=http://portainer.$DOMAINNAME/
+      - homepage.href=https://portainer.$DOMAINNAME/
       - homepage.description=Container Management
 

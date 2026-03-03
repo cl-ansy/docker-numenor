@@ -16,7 +16,6 @@ services:
       - $DOCKERDIR/appdata/radarr:/config
       - $SHAREDDIR/media/Movies:/data/movies
       - $DOWNLOADSDIR:/data/downloads
-      - "/etc/localtime:/etc/localtime:ro"
     environment:
       PUID: $PUID
       PGID: $PGID

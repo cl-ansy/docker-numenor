@@ -27,7 +27,7 @@ services:
       # Security critical
       - AUTH=0
       - SECRETS=0
-      - POST=0
+      - POST=1 # Required for authentik-worker to manage outpost containers
       # Not always needed
       - BUILD=0
       - COMMIT=0
