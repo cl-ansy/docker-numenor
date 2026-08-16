@@ -27,3 +27,11 @@ services:
       - traefik.http.routers.sonarr-rtr.service=sonarr-svc
       - traefik.http.routers.sonarr-rtr.middlewares=chain-authentik@file
       - traefik.http.services.sonarr-svc.loadbalancer.server.port=8989
+      - homepage.group=PVR
+      - homepage.name=Sonarr
+      - homepage.icon=sonarr.png
+      - homepage.href=https://sonarr.$DOMAINNAME
+      - homepage.description=TV Management
+      - homepage.widget.type=sonarr
+      - homepage.widget.url=http://sonarr:8989
+      - homepage.widget.key=$SONARR_API_KEY

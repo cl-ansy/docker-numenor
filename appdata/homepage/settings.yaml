@@ -2,9 +2,30 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/settings/
 
-# providers:
-#   openweathermap: openweathermapapikey
-#   weatherapi: weatherapiapikey
+title: Numenor
+headerStyle: boxed
+statusStyle: dot
+
+# Groups come from homepage.group labels on the compose services.
+# Order here controls display order; anything not listed lands at the end.
+layout:
+  Infrastructure:
+    style: row
+    columns: 4
+  Media:
+    style: row
+    columns: 2
+  PVR:
+    style: row
+    columns: 2
+  Downloads:
+    style: row
+    columns: 2
+  Monitoring:
+    style: row
+    columns: 2
+  Management:
+    style: row
+    columns: 4
 
 logpath: /app
-

@@ -25,3 +25,11 @@ services:
       - traefik.http.routers.sabnzbd-rtr.service=sabnzbd-svc
       - traefik.http.routers.sabnzbd-rtr.middlewares=chain-authentik@file
       - traefik.http.services.sabnzbd-svc.loadbalancer.server.port=8080
+      - homepage.group=Downloads
+      - homepage.name=SABnzbd
+      - homepage.icon=sabnzbd.png
+      - homepage.href=https://sabnzbd.$DOMAINNAME
+      - homepage.description=Usenet Downloader
+      - homepage.widget.type=sabnzbd
+      - homepage.widget.url=http://sabnzbd:8080
+      - homepage.widget.key=$SABNZBD_API_KEY

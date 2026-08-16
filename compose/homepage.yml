@@ -15,10 +15,20 @@ services:
       TZ: $TZ
       PUID: $PUID
       PGID: $PGID
+      # Required since homepage v0.9.0 or it refuses requests with a host validation error
+      HOMEPAGE_ALLOWED_HOSTS: $DOMAINNAME,www.$DOMAINNAME
+      # Referenced as {{HOMEPAGE_VAR_*}} in appdata/homepage/*.yaml.
+      # Infrastructure is addressed by IP because $DOMAINNAME resolves to Traefik
+      # only - see runbooks/access.md. Values live in .env so they stay out of git.
+      HOMEPAGE_VAR_DOMAIN: $DOMAINNAME
+      HOMEPAGE_VAR_CIMC: $CIMC_IP
+      HOMEPAGE_VAR_PVE: $PVE_IP
+      HOMEPAGE_VAR_NAS: $NAS_IP
+      HOMEPAGE_VAR_OPNSENSE: $OPNSENSE_IP
     labels:
       - traefik.enable=true
       - traefik.http.routers.homepage-rtr.entrypoints=websecure
-      - traefik.http.routers.homepage-rtr.rule=Host(`$DOMAINNAME`) || HOST(`www.$DOMAINNAME`)
+      - traefik.http.routers.homepage-rtr.rule=Host(`$DOMAINNAME`) || Host(`www.$DOMAINNAME`)
       - traefik.http.routers.homepage-rtr.service=homepage-svc
       - traefik.http.routers.homepage-rtr.middlewares=chain-authentik@file
       - traefik.http.services.homepage-svc.loadbalancer.server.port=3000

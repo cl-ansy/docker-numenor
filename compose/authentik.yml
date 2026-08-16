@@ -47,6 +47,11 @@ services:
       # - traefik.http.routers.authentik-outpost-rtr.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.${DOMAINNAME}`) && PathPrefix(`/outpost.goauthentik.io/`)
       - traefik.http.routers.authentik-rtr.service=authentik-svc
       - traefik.http.services.authentik-svc.loadbalancer.server.port=9000
+      - homepage.group=Management
+      - homepage.name=Authentik
+      - homepage.icon=authentik.png
+      - homepage.href=https://auth.$DOMAINNAME
+      - homepage.description=SSO / Identity
 
   authentik-worker:
     image: ghcr.io/goauthentik/server:latest

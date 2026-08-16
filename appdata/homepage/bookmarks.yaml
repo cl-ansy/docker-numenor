@@ -1,18 +1,36 @@
 ---
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/bookmarks
+#
+# These are the things that are NOT containers, so Docker label discovery cannot
+# find them. This is the section you want when you have forgotten how to get in.
+#
+# They are addressed by IP on purpose. $DOMAINNAME resolves to Traefik, so a name
+# like cimc.$DOMAINNAME would hit Traefik and 404 rather than reach the device.
+# More importantly, CIMC and Proxmox must stay reachable when the Docker stack is
+# down - that is the whole point of them. See runbooks/access.md.
+#
+# Values come from CIMC_IP / PVE_IP / NAS_IP / OPNSENSE_IP in .env, so the
+# addresses stay out of git.
 
-- Developer:
-    - Github:
-        - abbr: GH
+- Infrastructure:
+    - CIMC:
+        - abbr: BMC
+          href: https://{{HOMEPAGE_VAR_CIMC}}
+    - Proxmox:
+        - abbr: PVE
+          href: https://{{HOMEPAGE_VAR_PVE}}:8006
+    - OPNsense:
+        - abbr: FW
+          href: https://{{HOMEPAGE_VAR_OPNSENSE}}
+    - ReadyNAS:
+        - abbr: NAS
+          href: https://{{HOMEPAGE_VAR_NAS}}
+
+- Reference:
+    - Repo:
+        - abbr: GIT
           href: https://github.com/
-
-- Social:
-    - Reddit:
-        - abbr: RE
-          href: https://reddit.com/
-
-- Entertainment:
-    - YouTube:
-        - abbr: YT
-          href: https://youtube.com/
+    - Homepage Docs:
+        - abbr: DOC
+          href: https://gethomepage.dev/

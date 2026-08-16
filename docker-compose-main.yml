@@ -55,7 +55,7 @@ include:
   - compose/jellyfin.yml
   # APPS
   - compose/portainer.yml
-  # - compose/homepage.yml
+  - compose/homepage.yml
   # DOWNLOADERS
   - compose/sabnzbd.yml
   # PVRS

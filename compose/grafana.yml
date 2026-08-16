@@ -23,3 +23,8 @@ services:
       - traefik.http.routers.grafana-rtr.service=grafana-svc
       - traefik.http.routers.grafana-rtr.middlewares=chain-authentik@file
       - traefik.http.services.grafana-svc.loadbalancer.server.port=3000
+      - homepage.group=Monitoring
+      - homepage.name=Grafana
+      - homepage.icon=grafana.png
+      - homepage.href=https://grafana.$DOMAINNAME
+      - homepage.description=Dashboards

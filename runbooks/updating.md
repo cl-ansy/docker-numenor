@@ -15,7 +15,6 @@ bugs. Tag per service, by how far a bad update reaches.
 | `postgres` | `16-alpine` | 17 refuses to start against a 16 data directory |
 | `redis` | `7-alpine` | Persistence format |
 | `traefik` | `v3` | Every route depends on it |
-| `grafana/grafana` | `11` | Dashboard schema migrations |
 | `prom/prometheus` | `v3` | TSDB format |
 | `ghcr.io/goauthentik/server` | unpinned, should be pinned | See below |
 
@@ -24,9 +23,32 @@ bugs. Tag per service, by how far a bad update reaches.
 Dozzle, Homepage, whoami, the `exportarr` exporters, docker-gc, socket-proxy.
 Stateless, no migrations. Restart or roll the digest back.
 
+### A pin is only real if the tag exists
+
+`grafana/grafana:11` was pinned here and **the tag does not exist**. A pull failed
+with `manifest unknown`, which aborted the whole `up` and left other services
+mid-recreate.
+
+A bare major tag is a convention, not a guarantee. Publishers who ship `11.6.3`
+often never publish a floating `11`, and floating tags that do exist can be
+withdrawn later. Verify before relying on one:
+
+```bash
+curl -s 'https://hub.docker.com/v2/repositories/<org>/<image>/tags?page_size=100&ordering=last_updated' \
+  | jq -r '.results[].name' | head -30
+```
+
+Prefer a specific version (`11.6.3`) over a floating major for anything whose
+publisher does not clearly maintain major tags. A specific version cannot silently
+stop resolving.
+
+Grafana now runs `:latest` as a stopgap. That accepted a major version jump and a
+one-way `grafana.db` migration, so an older binary will no longer start against
+that data directory.
+
 ### `:latest`, accepted risk
 
-Jellyfin, Jellyseerr, Radarr, Sonarr, SABnzbd, Portainer.
+Grafana, Jellyfin, Jellyseerr, Radarr, Sonarr, SABnzbd, Portainer.
 
 One-way database migrations, so a downgrade needs a config restore from backup.
 Self-contained, so a failure does not cascade. LinuxServer publishes no major-only
@@ -152,10 +174,20 @@ secrets defined, so update with `dcpull` + `dcup` instead.
 Routine services (the *arrs, SABnzbd, Jellyfin, exporters):
 
 ```bash
-dcpull
+dcpull        # always first
 dcup
 dps
 ```
+
+**`dcpull` before `dcup`, always.** Pull contacts the registry without touching
+running containers, so an unresolvable image or a registry problem fails while
+everything is still up. `dcup` on its own uses whatever image is already on disk
+and recreates containers as it goes, so the same failure lands mid-flight and
+leaves services stopped.
+
+`dcconfig` does not substitute for this. It renders and validates the merged YAML
+and catches unset variables, but it never contacts a registry and will happily
+pass a config referencing an image that does not exist.
 
 Authentik, alone, never bundled:
 

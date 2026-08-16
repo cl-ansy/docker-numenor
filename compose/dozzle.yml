@@ -22,4 +22,9 @@ services:
       - traefik.http.routers.dozzle-rtr.service=dozzle-svc
       - traefik.http.routers.dozzle-rtr.middlewares=chain-authentik@file
       - traefik.http.services.dozzle-svc.loadbalancer.server.port=8080
+      - homepage.group=Management
+      - homepage.name=Dozzle
+      - homepage.icon=dozzle.png
+      - homepage.href=https://dozzle.$DOMAINNAME
+      - homepage.description=Container Logs
 
