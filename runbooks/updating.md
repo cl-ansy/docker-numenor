@@ -13,7 +13,7 @@ bugs. Tag per service, by how far a bad update reaches.
 | Image | Pin | Reason |
 |---|---|---|
 | `postgres` | `16-alpine` | 17 refuses to start against a 16 data directory |
-| `redis` | `7-alpine` | Persistence format |
+| `redis` | `8-alpine` | RDB format is not backward readable. Pin at or above the version that wrote the data |
 | `traefik` | `v3` | Every route depends on it |
 | `prom/prometheus` | `v3` | TSDB format |
 | `ghcr.io/goauthentik/server` | unpinned, should be pinned | See below |
@@ -23,24 +23,46 @@ bugs. Tag per service, by how far a bad update reaches.
 Dozzle, Homepage, whoami, the `exportarr` exporters, docker-gc, socket-proxy.
 Stateless, no migrations. Restart or roll the digest back.
 
-### A pin is only real if the tag exists
+### Pinning correctly
 
-`grafana/grafana:11` was pinned here and **the tag does not exist**. A pull failed
-with `manifest unknown`, which aborted the whole `up` and left other services
-mid-recreate.
+Commit `3e16cc4` pinned four images in one go. Two of the four broke on the next
+pull, in opposite ways.
 
-A bare major tag is a convention, not a guarantee. Publishers who ship `11.6.3`
-often never publish a floating `11`, and floating tags that do exist can be
-withdrawn later. Verify before relying on one:
+**The tag has to exist.** `grafana/grafana:11` does not. The pull failed with
+`manifest unknown`, which aborted the whole `up` and left other services
+mid-recreate. A bare major tag is a convention, not a guarantee: publishers who
+ship `11.6.3` often never publish a floating `11`, and floating tags that do exist
+can be withdrawn later.
+
+**The tag has to match what is already running.** `redis:alpine` became
+`redis:7-alpine`, but `redis:alpine` had been Redis 8, which writes RDB format
+version 13. Redis 7 cannot read it: `Can't handle RDB format version 13`, then
+`Fatal error loading the DB`. Redis reads older RDB versions, never newer. The pin
+was a silent downgrade, and it took Authentik down with it through
+`depends_on: service_healthy`.
+
+Any pin narrowing a floating tag is a version change until proven otherwise.
+Check what is running before writing the pin:
 
 ```bash
-curl -s 'https://hub.docker.com/v2/repositories/<org>/<image>/tags?page_size=100&ordering=last_updated' \
-  | jq -r '.results[].name' | head -30
+sudo docker inspect <container> --format '{{.Config.Image}}'
+sudo docker inspect <container> \
+  --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
 ```
 
-Prefer a specific version (`11.6.3`) over a floating major for anything whose
-publisher does not clearly maintain major tags. A specific version cannot silently
-stop resolving.
+And confirm the tag resolves before committing it:
+
+```bash
+sudo docker pull <image>:<tag>
+```
+
+Downgrades are the more dangerous of the two. A missing tag fails loudly at pull
+time with nothing recreated. A downgrade pulls cleanly and then fails on a data
+format the older binary cannot read, after the old container is gone.
+
+Prefer a specific version (`8.0.1`) over a floating major where the publisher does
+not clearly maintain major tags. A specific version cannot silently stop resolving
+or silently move.
 
 Grafana now runs `:latest` as a stopgap. That accepted a major version jump and a
 one-way `grafana.db` migration, so an older binary will no longer start against
