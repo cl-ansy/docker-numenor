@@ -125,7 +125,8 @@ services:
     restart: unless-stopped
     command: --save 60 1 --loglevel warning --port $AUTHENTIK_REDIS__PORT
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      # Writes, not PING. PING succeeds while writes are rejected.
+      test: ["CMD-SHELL", "redis-cli -p $AUTHENTIK_REDIS__PORT set _hc 1 > /dev/null && redis-cli -p $AUTHENTIK_REDIS__PORT del _hc > /dev/null"]
       start_period: 20s
       interval: 30s
       retries: 5

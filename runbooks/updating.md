@@ -248,6 +248,28 @@ Fix in `compose/prometheus.yml`:
 
 Until then, metrics history is disposable.
 
+### A healthcheck that only pings hides write failures
+
+`authentik-redis` was checked with `redis-cli ping | grep PONG`. Redis answers
+PING while refusing every write, so when a background save failed and Redis set
+`MISCONF`, Compose reported it healthy, started dependents, and the failure
+surfaced as an unexplained `authentik-worker` problem several layers away.
+
+The healthcheck now performs a write, so the same condition would surface as
+`authentik-redis` unhealthy rather than as a mystery three layers away.
+
+The underlying save failure self-resolved when the container was recreated for an
+image change: the Redis entrypoint chowns `/data` on start as root, which a
+long-running container never re-runs. Root cause was never confirmed, but stale
+ownership fits.
+
+Disabling persistence would also remove the failure mode, since Redis here is a
+cache and Celery broker with Postgres holding the durable state. Not done - the
+fault is gone, and that is a design decision rather than a fix.
+
+The general form: a healthcheck should exercise what dependents actually need. A
+liveness ping is not a readiness check.
+
 ### --remove-orphans deletes disabled services
 
 `dcup` includes it. Commenting an `include` line out of `docker-compose-main.yml`

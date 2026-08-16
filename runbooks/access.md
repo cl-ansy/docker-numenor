@@ -13,6 +13,7 @@ Companions: [updating.md](updating.md), [latency.md](latency.md), [storage.md](s
 | ReadyNAS | `<nas-host>` |
 | OPNsense | `<opnsense-host>` |
 | SSH user | `<user>` |
+| SSH port (not 22) | `<ssh-port>` |
 | Docker VM ID | `100` |
 
 ## Access ladder
@@ -108,12 +109,22 @@ no certificate, so browsers warn on the self-signed certs these devices serve.
 
 ## SSH
 
-`~/.ssh/config` on the workstation:
+**sshd on the Docker VM does not listen on 22.** Recover the port from the VM
+itself; this reads the effective config including any `sshd_config.d/` drop-ins:
+
+```bash
+sudo sshd -T | grep -w port
+sudo ss -tlnp | grep ssh      # alternative
+```
+
+Then put it in `~/.ssh/config` on the workstation so it never has to be
+remembered again:
 
 ```
 Host numenor
     HostName <vm-host>
     User <user>
+    Port <ssh-port>
     IdentityFile ~/.ssh/id_ed25519
 
 Host pve
@@ -126,6 +137,9 @@ Host nas
     User <nas-user>
     IdentityFile ~/.ssh/id_ed25519
 ```
+
+Record the port in the Addresses table at the top as well. A non-default port is
+exactly the detail that is missing when the console is the only way in.
 
 ## Commands
 
