@@ -67,10 +67,26 @@ them `media1` and `media2`.
 LVM-Thin rather than plain LVM, so VM disks on them stay snapshot-capable. Plain
 LVM breaks snapshots for any VM holding a disk there.
 
-Avoid the ZFS option for these devices. ZFS on top of a hardware RAID virtual drive
-is the configuration ZFS is designed against: the controller hides the per-disk
-errors ZFS needs in order to repair anything, leaving the overhead without the
-benefit.
+### Why not ZFS here
+
+ZFS on a hardware RAID virtual drive is the configuration it is designed against:
+the controller hides the per-disk errors ZFS needs to repair anything. True JBOD
+weakens that objection considerably, and ZFS on a JBOD-mode MegaRAID does work.
+The reasons not to use it here are about the data and the platform:
+
+- **Detection without repair.** Checksums are only half the feature. With no redundancy ZFS reports corruption and cannot fix it, which is a small gain over ext4 for files that can be re-downloaded.
+- **Compression buys nothing.** lz4 on already-compressed video is wasted cycles.
+- **Snapshots do not fit.** A media library is append-mostly; snapshots would mainly pin deleted files.
+- **ARC competes for RAM.** The host runs at ~70% of 94 GiB across two VMs.
+- **The VM boundary.** A host ZFS pool cannot be bind-mounted into a VM. That needs virtiofs, which landed in PVE 8.4 (this host runs 8.0.3), or an NFS hop from host to guest. ZFS *inside* the VM instead requires raw disk passthrough, which breaks VM snapshots.
+
+Two ext4 filesystems on thin-pool-backed VM disks work on the current version with
+no RAM cost and snapshots intact.
+
+Where ZFS would earn its place is `appdata`, not media: small, precious data where
+checksums, snapshots and `zfs send` to the NAS all pay off. That needs a real HBA
+in IT mode and preferably no VM boundary, so it belongs with the bare-metal
+question rather than this one.
 
 ## Attaching them to VM 100
 

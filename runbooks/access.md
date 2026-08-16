@@ -7,11 +7,11 @@ Companions: [updating.md](updating.md), [latency.md](latency.md), [storage.md](s
 | Thing | Value |
 |---|---|
 | Domain (`$DOMAINNAME`) | `<domain>` |
-| CIMC | `<cimc-ip>` |
-| Proxmox host | `<pve-ip>` |
-| Docker VM | `<vm-ip>` |
-| ReadyNAS | `<nas-ip>` |
-| OPNsense | `<opnsense-ip>` |
+| CIMC | `<cimc-host>` |
+| Proxmox host | `<pve-host>` |
+| Docker VM | `<vm-host>` |
+| ReadyNAS | `<nas-host>` |
+| OPNsense | `<opnsense-host>` |
 | SSH user | `<user>` |
 | Docker VM ID | `100` |
 
@@ -35,7 +35,7 @@ behind Authentik SSO. Start at `https://<domain>` for the dashboard.
 ssh numenor
 ```
 
-By IP, not by `<domain>`. `<domain>` resolves to Traefik only.
+Addressed directly, not under `<domain>`. `<domain>` resolves to Traefik only.
 
 ### Proxmox host
 
@@ -45,12 +45,12 @@ qm list
 qm start 100
 ```
 
-Web UI: `https://<pve-ip>:8006`. Its noVNC console reaches the VM without the VM's
+Web UI: `https://<pve-host>:8006`. Its noVNC console reaches the VM without the VM's
 network working.
 
 ### CIMC
 
-`https://<cimc-ip>`. Out-of-band, works with the OS dead or the box powered off.
+`https://<cimc-host>`. Out-of-band, works with the OS dead or the box powered off.
 Launch KVM for a console, Power for a hard cycle.
 
 If the CIMC web UI will not load in a current browser, its firmware only offers
@@ -88,8 +88,9 @@ Traefik's file provider can proxy external backends, so Proxmox and CIMC could b
 given names under `<domain>`. Do not do this. Emergency access would then depend
 on the Docker stack being up.
 
-Infrastructure is addressed by IP, from `CIMC_IP`, `PVE_IP`, `NAS_IP` and
-`OPNSENSE_IP` in `.env`. The homepage bookmarks read the same values.
+Infrastructure is addressed directly, from `CIMC_HOST`, `PVE_HOST`, `NAS_HOST` and
+`OPNSENSE_HOST` in `.env`. Either a bare IP or a name from the separate zone below
+works. The homepage bookmarks read the same values.
 
 For names, use a separate zone. Add host overrides in OPNsense under Services >
 Unbound DNS > Overrides, in `home.arpa` or `lan`:
@@ -111,17 +112,17 @@ no certificate, so browsers warn on the self-signed certs these devices serve.
 
 ```
 Host numenor
-    HostName <vm-ip>
+    HostName <vm-host>
     User <user>
     IdentityFile ~/.ssh/id_ed25519
 
 Host pve
-    HostName <pve-ip>
+    HostName <pve-host>
     User root
     IdentityFile ~/.ssh/id_ed25519
 
 Host nas
-    HostName <nas-ip>
+    HostName <nas-host>
     User <nas-user>
     IdentityFile ~/.ssh/id_ed25519
 ```
@@ -156,7 +157,7 @@ In order. Stop at the first failure.
 
 1. Container running? `dps`. If it restarts in a loop, `dclogs <service>`.
 2. Traefik routing it? Check `https://traefik.<domain>` for the router and service. A missing router means a label typo or no `traefik.enable=true`.
-3. DNS? `dig +short <service>.<domain> @<opnsense-ip>` returns the VM IP. `<domain>` is internal-only, so a wrong Unbound answer means nothing resolves.
+3. DNS? `dig +short <service>.<domain> @<opnsense-host>` returns the VM IP. `<domain>` is internal-only, so a wrong Unbound answer means nothing resolves.
 4. Certificate? Browser TLS warnings mean ACME renewal failed. `dclogs traefik`, and confirm `appdata/traefik/acme/acme.json` is mode 600.
 5. Auth? A redirect loop to `auth.<domain>` means Authentik or its Postgres is unhealthy. `dclogs authentik`, `dclogs authentik-postgres`.
 6. Storage? Empty libraries in Jellyfin, Radarr or Sonarr mean the NFS mount is missing and the containers bind-mounted an empty directory. `mount | grep nfs`, `ls "$SHAREDDIR/media"`.
