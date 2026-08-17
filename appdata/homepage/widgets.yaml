@@ -2,14 +2,10 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/info-widgets/
 
-# Ambient load for whoever is looking, plus free space on the media share.
-# expanded shows used and total alongside free, so the number has a denominator.
-#
 # Any disk listed must be mounted into the homepage container; see the volumes
 # in compose/homepage.yml. Add the local media mounts once the new disks land
 # (.plans/hdd-integration.md).
 - resources:
-    expanded: true
     cpu: true
     memory: true
     disk:

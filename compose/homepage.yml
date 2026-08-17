@@ -13,6 +13,8 @@ services:
       - $DOCKERDIR/logs/homepage:/app/logs
       # The resources widget reads filesystems from inside this container, so any
       # disk it should report has to be mounted here. Read-only.
+      # Mounted explicitly rather than reporting the container's own /, which
+      # relies on overlay2 passing through the backing filesystem's stats.
       - $SHAREDDIR:/mnt/shared:ro
     environment:
       TZ: $TZ
