@@ -11,6 +11,9 @@ services:
     volumes:
       - $DOCKERDIR/appdata/homepage:/app/config
       - $DOCKERDIR/logs/homepage:/app/logs
+      # The resources widget reads filesystems from inside this container, so any
+      # disk it should report has to be mounted here. Read-only.
+      - $SHAREDDIR:/mnt/shared:ro
     environment:
       TZ: $TZ
       PUID: $PUID
@@ -25,6 +28,13 @@ services:
       HOMEPAGE_VAR_PVE: $PVE_HOST
       HOMEPAGE_VAR_NAS: $NAS_HOST
       HOMEPAGE_VAR_OPNSENSE: $OPNSENSE_HOST
+      # Widget API keys. Previously these sat in homepage.widget.key labels on
+      # the service containers, where anything with docker inspect could read
+      # them. Now they exist only here.
+      HOMEPAGE_VAR_RADARR_KEY: $RADARR_API_KEY
+      HOMEPAGE_VAR_SONARR_KEY: $SONARR_API_KEY
+      HOMEPAGE_VAR_SABNZBD_KEY: $SABNZBD_API_KEY
+      HOMEPAGE_VAR_JELLYFIN_KEY: $JELLYFIN_API_KEY
     labels:
       - traefik.enable=true
       - traefik.http.routers.homepage-rtr.entrypoints=websecure

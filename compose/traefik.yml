@@ -70,11 +70,4 @@ services:
       - traefik.http.routers.traefik-rtr.rule=Host(`traefik.$DOMAINNAME`)
       - traefik.http.routers.traefik-rtr.service=api@internal
       - traefik.http.routers.traefik-rtr.middlewares=chain-authentik@file
-      - homepage.group=Management
-      - homepage.name=Traefik
-      - homepage.icon=traefik.png
-      - homepage.href=https://traefik.$DOMAINNAME
-      # Widget disabled until homepage can bypass auth for traefik api
-      # - homepage.widget.type=traefik
-      # - homepage.widget.url=https://traefik.$DOMAINNAME
 

@@ -19,8 +19,3 @@ services:
       - traefik.http.routers.jellyseerr-rtr.service=jellyseerr-svc
       - traefik.http.routers.jellyseerr-rtr.middlewares=chain-no-auth@file
       - traefik.http.services.jellyseerr-svc.loadbalancer.server.port=5055
-      - homepage.group=Media
-      - homepage.name=Jellyseerr
-      - homepage.icon=jellyseerr.png
-      - homepage.href=https://jellyseerr.$DOMAINNAME
-      - homepage.description=Media Requests

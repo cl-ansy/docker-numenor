@@ -22,9 +22,4 @@ services:
       # Portainer uses its own auth
       # - traefik.http.routers.portainer-rtr.middlewares=chain-authentik@file
       - traefik.http.services.portainer-svc.loadbalancer.server.port=9000
-      - homepage.group=Management
-      - homepage.name=Portainer
-      - homepage.icon=portainer.png
-      - homepage.href=https://portainer.$DOMAINNAME/
-      - homepage.description=Container Management
 

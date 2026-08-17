@@ -2,12 +2,17 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/info-widgets/
 
+# Free space is a summary question - "can I still download things". Host CPU and
+# memory are observability and live in Grafana, not here.
+#
+# Any disk listed must be mounted into the homepage container; see the volumes
+# in compose/homepage.yml. Add the local media mounts once the new disks land
+# (.plans/hdd-integration.md).
 - resources:
-    cpu: true
-    memory: true
-    disk: /
+    label: storage
+    disk:
+      - /mnt/shared
 
 - search:
     provider: duckduckgo
     target: _blank
-
