@@ -4,6 +4,11 @@ Companions: [updating.md](updating.md), [latency.md](latency.md), [storage.md](s
 
 ## Addresses
 
+**This table stays a template. The repo is public.** Real addresses, ports and
+usernames live in `~/.ssh/config`, `.env`, and your password manager - not here.
+The point of the table is to say *what* you need to know, so nothing gets missed
+when the console is the only way in.
+
 | Thing | Value |
 |---|---|
 | Domain (`$DOMAINNAME`) | `<domain>` |
@@ -138,8 +143,7 @@ Host nas
     IdentityFile ~/.ssh/id_ed25519
 ```
 
-Record the port in the Addresses table at the top as well. A non-default port is
-exactly the detail that is missing when the console is the only way in.
+The port belongs in `~/.ssh/config`, not in this file. This repo is public.
 
 ## Commands
 

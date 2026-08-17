@@ -24,8 +24,10 @@ layout:
   Monitoring:
     style: row
     columns: 2
+  # Service groups all sit at 2 columns so every card is the same width.
+  # Infrastructure is 4 because bookmarks are compact single rows.
   Management:
     style: row
-    columns: 4
+    columns: 2
 
 logpath: /app
