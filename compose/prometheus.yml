@@ -13,3 +13,4 @@ services:
     #   - "9090:9090"
     volumes:
       - $DOCKERDIR/appdata/prometheus:/etc/prometheus
+      - $DOCKERDIR/appdata/prometheus-data:/prometheus

@@ -69,6 +69,4 @@ include:
   - compose/sabnzbd-exporter.yml
   - compose/sonarr-exporter.yml
   - compose/dozzle.yml
-  # MAINTENANCE
-  - compose/docker-gc.yml
 

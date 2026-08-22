@@ -6,7 +6,6 @@ appdata/*
 !appdata/authentik
 appdata/authentik/*
 !appdata/authentik/brand
-!appdata/docker-gc
 !appdata/homepage
 !appdata/traefik
 appdata/traefik/*

@@ -20,7 +20,7 @@ bugs. Tag per service, by how far a bad update reaches.
 
 ### `:latest`, low stakes
 
-Dozzle, Homepage, whoami, the `exportarr` exporters, docker-gc, socket-proxy.
+Dozzle, Homepage, whoami, the `exportarr` exporters, socket-proxy.
 Stateless, no migrations. Restart or roll the digest back.
 
 ### Pinning correctly
@@ -232,21 +232,32 @@ container refuses to start against the old one. It needs a `pg_dump`, a wipe of
 
 ## Stack-specific traps
 
-### docker-gc removes the Prometheus history
+### Anonymous volumes are lost on recreate
 
-`compose/docker-gc.yml` sets `CLEAN_UP_VOLUMES: 1` and
-`appdata/docker-gc/docker-gc-exclude` is empty. Prometheus stores its TSDB at
-`/prometheus`, an anonymous volume, because the compose file only binds
-`/etc/prometheus`. Recreating the container during an update orphans the old
-volume and makes it eligible for removal.
+An image that declares `VOLUME` for a path the compose file does not bind-mount
+stores that data in an anonymous volume. Recreating the container - which any
+image or config change does - orphans it and starts fresh.
 
-Fix in `compose/prometheus.yml`:
+`prom/prometheus` declares `/prometheus` for its TSDB. The compose file bound only
+`/etc/prometheus`, the config, so metrics history was being discarded on every
+recreate. Fixed by binding `$DOCKERDIR/appdata/prometheus-data:/prometheus`.
 
-```yaml
-      - $DOCKERDIR/appdata/prometheus-data:/prometheus
+`jellyfin/jellyfin` declares `/cache`, still unbound. That one regenerates, so it
+costs a rebuild rather than data.
+
+Check for others after adding a service:
+
+```bash
+docker volume ls
+docker ps -q | xargs docker inspect \
+  -f '{{.Name}}{{range .Mounts}}{{if eq .Type "volume"}} VOL:{{.Name}}->{{.Destination}}{{end}}{{end}}'
 ```
 
-Until then, metrics history is disposable.
+docker-gc used to be blamed for this. It was removed on 2026-08-22 after its logs
+showed it had never run - the image did not accept the six-field `0 0 0 * * ?`
+cron expression it was configured with. It was armed to delete volumes
+(`CLEAN_UP_VOLUMES: 1`, empty exclude file) and never fired. Use `dprune`
+manually instead.
 
 ### A healthcheck that only pings hides write failures
 

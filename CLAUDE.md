@@ -89,6 +89,6 @@ All sensitive credentials are passed via Docker secrets (files under `$DOCKERDIR
 ### Gitignore Strategy
 
 - `.env` is excluded. Only `.env.example` is tracked.
-- `appdata/` contents are excluded by default; specific subdirectories are whitelisted (brand assets, traefik rules, homepage config, prometheus config, docker-gc config).
+- `appdata/` contents are excluded by default; specific subdirectories are whitelisted (brand assets, traefik rules, homepage config, prometheus config).
 - `secrets/` directory structure is tracked but contents are excluded.
 - `logs/` contents are excluded.
