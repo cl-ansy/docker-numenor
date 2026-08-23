@@ -1,13 +1,12 @@
 # Access
 
-Companions: [updating.md](updating.md), [latency.md](latency.md), [storage.md](storage.md).
+See also [updating.md](updating.md), [latency.md](latency.md), [storage.md](storage.md), [gpu.md](gpu.md).
 
 ## Addresses
 
-**This table stays a template. The repo is public.** Real addresses, ports and
-usernames live in `~/.ssh/config`, `.env`, and your password manager - not here.
-The point of the table is to say *what* you need to know, so nothing gets missed
-when the console is the only way in.
+This table stays a template - the repo is public. Real addresses, ports and
+usernames go in `~/.ssh/config`, `.env`, and a password manager. The table is
+here so nothing gets forgotten when the console is the only way in.
 
 | Thing | Value |
 |---|---|
@@ -15,8 +14,8 @@ when the console is the only way in.
 | CIMC | `<cimc-host>` |
 | Proxmox host | `<pve-host>` |
 | Docker VM | `<vm-host>` |
-| ReadyNAS | `<nas-host>` |
-| OPNsense | `<opnsense-host>` |
+| NAS | `<nas-host>` |
+| Firewall | `<opnsense-host>` |
 | SSH user | `<user>` |
 | SSH port (not 22) | `<ssh-port>` |
 | Docker VM ID | `100` |
@@ -28,20 +27,20 @@ CIMC  ->  Proxmox host  ->  Docker VM  ->  services
 ```
 
 Each layer reaches the next and stays up when the one below it fails. Work down
-the list until something answers.
+until something answers.
 
 ### Services
 
-`https://<service>.<domain>`. Everything routes through Traefik. Most services sit
-behind Authentik SSO. Start at `https://<domain>` for the dashboard.
+`https://<service>.<domain>`. Everything routes through Traefik, and most
+services sit behind Authentik SSO. Start at `https://<domain>` for the dashboard.
 
 ### Docker VM
 
 ```bash
-ssh numenor
+ssh <vm-host>
 ```
 
-Addressed directly, not under `<domain>`. `<domain>` resolves to Traefik only.
+Addressed directly, not under `<domain>` - that resolves to Traefik only.
 
 ### Proxmox host
 
@@ -51,21 +50,56 @@ qm list
 qm start 100
 ```
 
-Web UI: `https://<pve-host>:8006`. Its noVNC console reaches the VM without the VM's
-network working.
+Web UI at `https://<pve-host>:8006`. Its noVNC console reaches the VM even when
+the VM's network is down.
 
 ### CIMC
 
-`https://<cimc-host>`. Out-of-band, works with the OS dead or the box powered off.
-Launch KVM for a console, Power for a hard cycle.
+`https://<cimc-host>`. Out-of-band, works with the OS dead or the box powered
+off. Launch KVM for a console, Power for a hard cycle.
 
-If the CIMC web UI will not load in a current browser, its firmware only offers
-TLS 1.0/1.1 and needs updating.
+The Cisco Integrated Management Controller is a separate processor on the
+motherboard with its own network port and standby power - Dell calls theirs
+iDRAC, HP calls it iLO. It's the only way to reach BIOS setup, watch a boot, or
+fix a host that won't start, so every risky host change depends on it working.
+
+If the web UI won't load in a current browser, the firmware only offers TLS
+1.0/1.1 and needs updating.
+
+#### Configuring it without a reboot
+
+As of 2026-08-22 CIMC reports `0.0.0.0` - no address. It can be set from the
+running host over the internal IPMI interface, no downtime:
+
+```bash
+apt install ipmitool
+modprobe ipmi_si ipmi_devintf
+ipmitool lan print 1              # current config, MAC, port mode
+ipmitool user list 1              # confirm a usable account exists
+```
+
+```bash
+ipmitool lan set 1 ipsrc static
+ipmitool lan set 1 ipaddr <cimc-ip>
+ipmitool lan set 1 netmask <mask>
+ipmitool lan set 1 defgw ipaddr <gateway>
+ipmitool lan print 1              # verify
+```
+
+Static rather than DHCP - this is the layer you reach when other things are
+down, so its address shouldn't depend on a DHCP server that might also be down.
+
+Two things `ipmitool` can't fix. The rear dedicated management port has to be
+cabled to a switch. And NIC mode (Dedicated vs Shared LOM) may only be reachable
+via F8 at boot, so if `lan print` shows a mode that doesn't match the cabling,
+that part needs console access.
+
+Once it works, set `CIMC_HOST` in `.env` so the homepage bookmark resolves.
 
 ## Proxmox UI layout
 
-The tree is always cluster > node > guests, even with one server. `Datacenter` is
-the cluster scope. `pve` is the node name. `local (pve)` means storage `local` on
+The tree is cluster > node > guests even with one server. `Datacenter` is the
+cluster scope, `pve` is the node name, and `local (pve)` means storage `local` on
 node `pve`.
 
 Datacenter holds config that could apply to many machines. The node holds config
@@ -80,53 +114,51 @@ about this box.
 | Notification targets | Syslog, task history |
 | Datacenter firewall | Node certificates, time |
 
-Storage catches people out: a storage is defined at Datacenter, then made
-available to nodes. Adding the NFS share for backups is **Datacenter > Storage >
-Add > NFS**. The physical disks behind `local-lvm` are under **pve > Disks**.
+Storage catches people out: it's defined at Datacenter, then made available to
+nodes. Adding the NFS share for backups is **Datacenter > Storage > Add > NFS**.
+The physical disks behind `local-lvm` are under **pve > Disks**.
 
 ## DNS
 
 `<domain>` resolves to Traefik. Every name under it lands on the Docker VM, where
-Traefik matches a router or returns 404. `cimc.<domain>` reaches Traefik, not the
-BMC.
+Traefik either matches a router or returns 404 - so `cimc.<domain>` reaches
+Traefik, not the BMC.
 
-Traefik's file provider can proxy external backends, so Proxmox and CIMC could be
-given names under `<domain>`. Do not do this. Emergency access would then depend
-on the Docker stack being up.
+Traefik's file provider could proxy Proxmox and CIMC under `<domain>`. Don't do
+that: emergency access would then depend on the Docker stack being up.
 
-Infrastructure is addressed directly, from `CIMC_HOST`, `PVE_HOST`, `NAS_HOST` and
-`OPNSENSE_HOST` in `.env`. Either a bare IP or a name from the separate zone below
-works. The homepage bookmarks read the same values.
+Infrastructure is addressed directly, from `CIMC_HOST`, `PVE_HOST`, `NAS_HOST`
+and `OPNSENSE_HOST` in `.env`. A bare IP or a name from a separate zone both
+work, and the homepage bookmarks read the same values.
 
-For names, use a separate zone. Add host overrides in OPNsense under Services >
-Unbound DNS > Overrides, in `home.arpa` or `lan`:
+For names, use a zone unrelated to `<domain>`. Add host overrides under Services
+> Unbound DNS > Overrides, in `home.arpa` or `lan`:
 
 | Host | Domain | IP |
 |---|---|---|
 | `cimc` | `home.arpa` | `<cimc-ip>` |
 | `pve` | `home.arpa` | `<pve-ip>` |
-| `numenor` | `home.arpa` | `<vm-ip>` |
+| `<vm-host>` | `home.arpa` | `<vm-ip>` |
 | `nas` | `home.arpa` | `<nas-ip>` |
-| `opnsense` | `home.arpa` | `<opnsense-ip>` |
+| `fw` | `home.arpa` | `<opnsense-ip>` |
 
-These resolve to the devices directly and are unaffected by `<domain>`. They get
-no certificate, so browsers warn on the self-signed certs these devices serve.
+These resolve straight to the devices and aren't affected by `<domain>`. They get
+no certificate, so browsers warn on the self-signed certs those devices serve.
 
 ## SSH
 
-**sshd on the Docker VM does not listen on 22.** Recover the port from the VM
-itself; this reads the effective config including any `sshd_config.d/` drop-ins:
+sshd on the Docker VM does not listen on 22. Recover the port from the VM - this
+reads the effective config including any `sshd_config.d/` drop-ins:
 
 ```bash
 sudo sshd -T | grep -w port
 sudo ss -tlnp | grep ssh      # alternative
 ```
 
-Then put it in `~/.ssh/config` on the workstation so it never has to be
-remembered again:
+Then put it in `~/.ssh/config` on the workstation:
 
 ```
-Host numenor
+Host <vm-host>
     HostName <vm-host>
     User <user>
     Port <ssh-port>
@@ -143,7 +175,10 @@ Host nas
     IdentityFile ~/.ssh/id_ed25519
 ```
 
-The port belongs in `~/.ssh/config`, not in this file. This repo is public.
+Keep customisations in `/etc/ssh/sshd_config.d/` rather than `sshd_config`
+itself. Drop-ins aren't package conffiles, so a distro upgrade won't offer to
+replace them - which matters most for `PasswordAuthentication no`, since the
+stock file leaves it commented and sshd defaults to `yes`.
 
 ## Commands
 
@@ -173,12 +208,12 @@ sudo docker compose -f docker-compose-main.yml logs -tf --tail=50 <service>
 
 In order. Stop at the first failure.
 
-1. Container running? `dps`. If it restarts in a loop, `dclogs <service>`.
-2. Traefik routing it? Check `https://traefik.<domain>` for the router and service. A missing router means a label typo or no `traefik.enable=true`.
-3. DNS? `dig +short <service>.<domain> @<opnsense-host>` returns the VM IP. `<domain>` is internal-only, so a wrong Unbound answer means nothing resolves.
-4. Certificate? Browser TLS warnings mean ACME renewal failed. `dclogs traefik`, and confirm `appdata/traefik/acme/acme.json` is mode 600.
-5. Auth? A redirect loop to `auth.<domain>` means Authentik or its Postgres is unhealthy. `dclogs authentik`, `dclogs authentik-postgres`.
-6. Storage? Empty libraries in Jellyfin, Radarr or Sonarr mean the NFS mount is missing and the containers bind-mounted an empty directory. `mount | grep nfs`, `ls "$SHAREDDIR/media"`.
+1. **Container running?** `dps`. If it restarts in a loop, `dclogs <service>`.
+2. **Traefik routing it?** Check `https://traefik.<domain>` for the router and service. A missing router usually means a label typo or no `traefik.enable=true`.
+3. **DNS?** `dig +short <service>.<domain> @<opnsense-host>` should return the VM IP. The domain is internal-only, so a wrong Unbound answer means nothing resolves.
+4. **Certificate?** Browser TLS warnings mean ACME renewal failed. `dclogs traefik`, and check `appdata/traefik/acme/acme.json` is mode 600.
+5. **Auth?** A redirect loop to `auth.<domain>` means Authentik or its Postgres is unhealthy. `dclogs authentik`, `dclogs authentik-postgres`.
+6. **Storage?** Empty libraries in Jellyfin, Radarr or Sonarr mean the NFS mount is missing and containers bind-mounted an empty directory. Run `mount | grep nfs`, then list the mountpoint by its real path. `$SHAREDDIR` is a compose variable and is not set in an interactive shell, so `ls "$SHAREDDIR/media"` silently lists `/media` instead.
 
 ## Paths
 
@@ -191,23 +226,29 @@ In order. Stop at the first failure.
 | Traefik middleware | `$DOCKERDIR/appdata/traefik/rules/` |
 | Logs | `$DOCKERDIR/logs/` |
 | Media (NFS) | `$SHAREDDIR/media` |
-| Media (local, RAID0) | `$LOCALMEDIADIR`, see [storage.md](storage.md) |
+| Media (local) | `$LOCALMEDIADIR`, see [storage.md](storage.md) |
 | Downloads | `$DOWNLOADSDIR` |
 
 Paths come from `.env`, which is not in git. Copy `.env.example` to start.
 
 ## Adding a service to the dashboard
 
-Homepage discovers containers through the socket proxy. Add labels to the
-service's compose file:
+Services are defined in `appdata/homepage/services.yaml`, not as `homepage.*`
+labels on the compose file. The two are independent mechanisms, so using both
+renders every service twice.
 
 ```yaml
-      - homepage.group=Media
-      - homepage.name=Example
-      - homepage.icon=example.png
-      - homepage.href=https://example.$DOMAINNAME
-      - homepage.description=What it does
+- Media:
+    - Example:
+        icon: example.png
+        href: https://example.{{HOMEPAGE_VAR_DOMAIN}}
+        description: What it does
+        server: my-docker      # matches appdata/homepage/docker.yaml
+        container: example     # gives the status dot
 ```
 
-Group order: `appdata/homepage/settings.yaml`. Non-container entries:
+API keys go in `compose/homepage.yml` as `HOMEPAGE_VAR_*` and are referenced as
+`"{{HOMEPAGE_VAR_X}}"`. Quote them, or YAML reads the braces as a flow mapping.
+
+Group order is in `appdata/homepage/settings.yaml`. Non-container entries go in
 `appdata/homepage/bookmarks.yaml`.

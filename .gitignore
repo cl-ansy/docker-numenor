@@ -17,6 +17,4 @@ logs/*
 !secrets
 secrets/*
 
-# Working notes. Contain exact software versions, uptime, and hardware details
-# that do not belong in a public repo. Keep a copy with the NAS backup instead.
 .plans/
