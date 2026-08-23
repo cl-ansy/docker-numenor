@@ -5,8 +5,8 @@ See also [access.md](access.md), [storage.md](storage.md).
 ## Tagging policy
 
 `:latest` can move across major versions without warning and records no version
-to roll back to. Pinning everything has its own cost, since stale pins
-accumulate known bugs. So tag per service, based on how far a bad update reaches.
+to roll back to. Pinning everything has its own cost: stale pins accumulate known
+bugs. Tag per service, based on how far a bad update reaches.
 
 ### Pinned
 
@@ -28,9 +28,9 @@ migrations. Restart or roll the digest back.
 Grafana, Jellyfin, Jellyseerr, Radarr, Sonarr, SABnzbd, Portainer.
 
 These do one-way database migrations, so a downgrade needs a config restore from
-backup. They're self-contained though, so a failure doesn't cascade. LinuxServer
-publishes no major-only tags for the *arrs, so pinning would mean naming exact
-versions and bumping them by hand.
+backup. They are self-contained, and a failure doesn't cascade. LinuxServer
+publishes no major-only tags for the *arrs, which makes pinning a matter of
+naming exact versions and bumping them by hand.
 
 This tier only works if you record digests before every update. Skip that and
 there's no rollback path.
@@ -42,12 +42,12 @@ opposite ways.
 
 **The tag has to exist.** `grafana/grafana:11` doesn't. The pull failed with
 `manifest unknown`, which aborted the whole `up` and left other services
-mid-recreate. A bare major tag is a convention, not a guarantee - publishers who
+mid-recreate. A bare major tag is a convention, not a guarantee. Publishers who
 ship `11.6.3` often never publish a floating `11`.
 
 **The tag has to match what's already running.** `redis:alpine` became
 `redis:7-alpine`, but `redis:alpine` had been Redis 8, which writes RDB format
-version 13. Redis 7 can't read it, so it failed with `Can't handle RDB format
+version 13. Redis 7 can't read it. It failed with `Can't handle RDB format
 version 13` and took Authentik down through `depends_on: service_healthy`.
 
 Any pin that narrows a floating tag is a version change until proven otherwise.
@@ -73,7 +73,7 @@ silently move.
 Pinned to `2025.2.4` on both `authentik` and `authentik-worker`. They must always
 carry the same tag.
 
-Authentik doesn't reliably support skipping releases, so a jump forward may need
+Authentik doesn't reliably support skipping releases. A jump forward may need
 stepping through intermediate versions. Read the release notes between the
 current pin and the target first.
 
@@ -87,8 +87,8 @@ dclogs authentik          # wait for migrations to finish
 
 Log in at `https://auth.<domain>` before walking away.
 
-Anything reading Authentik's API may be version-sensitive - the homepage widget
-needs `version: 2` only at 2025.8.0 and above.
+Anything reading Authentik's API may be version-sensitive. The homepage widget,
+for example, needs `version: 2` only at 2025.8.0 and above.
 
 ## Blast radius
 
@@ -147,8 +147,8 @@ being found.
 
 The script curls `raw.githubusercontent.com` on every run and offers to update
 itself. Saying yes runs `curl -L <raw url> > "$ScriptPath"` against the `main`
-branch - no tag, no checksum, no signature. Under `sudo` that executes whatever
-is at HEAD of a third-party repo and overwrites the copy tracked in git.
+branch, with no tag, no checksum and no signature. Under `sudo` that executes
+whatever is at HEAD of a third-party repo and overwrites the copy tracked in git.
 
 Answer `n` and bump it deliberately with a reviewed diff.
 
@@ -172,7 +172,7 @@ secrets defined, so use `dcpull` + `dcup` instead. `-n` is unaffected either way
 
 ## Updating
 
-Routine services - the *arrs, SABnzbd, Jellyfin, exporters:
+Routine services, meaning the *arrs, SABnzbd, Jellyfin and the exporters:
 
 ```bash
 dcpull        # always first
@@ -183,16 +183,16 @@ dps
 **Pull before up, always.** Pull contacts the registry without touching running
 containers, so an unresolvable image fails while everything is still up. `dcup`
 on its own uses whatever image is already on disk and recreates containers as it
-goes, so the same failure lands mid-flight and leaves services stopped.
+goes. The same failure then lands mid-flight and leaves services stopped.
 
 `dcconfig` is not a substitute. It renders and validates the merged YAML and
-catches unset variables, but never contacts a registry - it will happily pass a
+catches unset variables, but never contacts a registry. It will happily pass a
 config referencing an image that doesn't exist.
 
 Authentik goes alone, never bundled:
 
 ```bash
-# Snapshot the VM first, disk only - no RAM
+# Snapshot the VM first, disk only, no RAM
 dcpull
 sudo docker compose -f docker-compose-main.yml up -d \
   authentik-postgres authentik-redis authentik authentik-worker
@@ -203,23 +203,23 @@ Pinned major bumps (Traefik v3 to v4, Grafana 11 to 12): edit the tag, read the
 upstream breaking changes, one at a time.
 
 Postgres major versions aren't a pull. The data directory format changes and the
-container refuses to start against the old one, so it needs a `pg_dump`, a wipe
-of `appdata/authentik-postgres`, and a restore.
+container refuses to start against the old one. It needs a `pg_dump`, a wipe of
+`appdata/authentik-postgres`, and a restore.
 
 ## Traps in this stack
 
 ### Anonymous volumes are lost on recreate
 
 An image that declares `VOLUME` for a path the compose file doesn't bind-mount
-stores that data in an anonymous volume. Recreating the container - which any
-image or config change does - orphans it and starts fresh.
+stores that data in an anonymous volume. Any image or config change recreates the
+container, which orphans that volume and starts fresh.
 
 `prom/prometheus` declares `/prometheus` for its TSDB. The compose file bound
 only `/etc/prometheus`, the config, so metrics history was discarded on every
 recreate. Fixed by binding `$DOCKERDIR/appdata/prometheus-data:/prometheus`.
 
-`jellyfin/jellyfin` declares `/cache`, still unbound. That regenerates, so it
-costs a rebuild rather than data.
+`jellyfin/jellyfin` declares `/cache`, still unbound. That regenerates, costing a
+rebuild rather than data.
 
 Check for others after adding a service:
 
@@ -230,7 +230,7 @@ docker ps -q | xargs docker inspect \
 ```
 
 docker-gc used to get the blame for this. It was removed on 2026-08-22 after its
-logs showed it had never run - the image didn't accept the six-field
+logs showed it had never run. The image didn't accept the six-field
 `0 0 0 * * ?` cron expression it was configured with. It had been armed to delete
 volumes the whole time and never fired. Use `dprune` manually instead.
 
@@ -238,14 +238,14 @@ volumes the whole time and never fired. Use `dprune` manually instead.
 
 `authentik-redis` was checked with `redis-cli ping | grep PONG`. Redis answers
 PING while refusing every write, so when a background save failed and Redis set
-`MISCONF`, Compose reported it healthy, started dependents, and the failure
+`MISCONF`, Compose reported it healthy and started dependents. The failure then
 surfaced as an unexplained `authentik-worker` problem several layers away.
 
-The healthcheck now performs a write, so the same condition shows up as
+The healthcheck now performs a write. The same condition would show up as
 `authentik-redis` unhealthy instead.
 
 The save failure itself resolved when the container was recreated for an image
-change - the Redis entrypoint chowns `/data` on start as root, which a
+change. The Redis entrypoint chowns `/data` on start as root, which a
 long-running container never re-runs. Stale ownership fits, though it was never
 confirmed.
 
@@ -282,8 +282,8 @@ sudo docker tag <image>@sha256:<digest> <image>:latest
 dcup
 ```
 
-Authentik also needs its database rolled back, since migrations aren't reversible
-and an older binary won't start against a newer schema:
+Authentik also needs its database rolled back. Migrations aren't reversible, and
+an older binary won't start against a newer schema:
 
 ```bash
 dcmain stop authentik authentik-worker
@@ -306,7 +306,7 @@ A Proxmox snapshot rollback is faster and more reliable than either.
 | Covers | Your own changes | Your own changes | Hardware failure |
 
 An Authentik update takes a disk-only snapshot. A host wipe needs `vzdump` to the
-NAS, since a snapshot dies with the disk being wiped.
+NAS, because a snapshot dies with the disk being wiped.
 
 ### Uncheck "Include RAM"
 
@@ -318,13 +318,13 @@ boots the VM rather than resuming it, which doesn't matter for a Docker host.
 Include RAM only when the in-memory state is what you need to preserve.
 
 VM 100 has PCI passthrough devices configured and a RAM-state snapshot still
-succeeded, so passthrough doesn't block it. Live migration is what passthrough
-actually prevents.
+succeeded, meaning passthrough doesn't block it. Live migration is what
+passthrough actually prevents.
 
 ### Thin pool limits
 
-`local-lvm` is LVM-thin, so snapshots work at all - thick LVM doesn't support
-them usefully. Two numbers govern the room available:
+`local-lvm` is LVM-thin, which is why snapshots work at all. Thick LVM doesn't
+support them usefully. Two numbers govern the room available:
 
 ```bash
 vgs pve                                                    # VFree

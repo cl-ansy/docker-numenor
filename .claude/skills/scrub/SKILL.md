@@ -1,14 +1,14 @@
 ---
 name: scrub
-description: Check markdown or any tracked file for environment details that should not be committed to this public repo - hostnames, IPs, domains, usernames, ports, keys, serials. Use before committing docs, when writing anything shareable, or when asked to scrub, sanitise, or check a file for leaks.
+description: Check markdown or any tracked file for environment details that should not be committed to this public repo, such as hostnames, IPs, domains, usernames, ports, keys and serials. Use before committing docs, when writing anything shareable, or when asked to scrub, sanitise, or check a file for leaks.
 ---
 
 # Scrub
 
-This repository is **public**. Its docs describe a real deployment, so they must
-carry the procedure without carrying the environment.
+This repository is public. Its docs describe a real deployment, so they should
+explain how to do things without including the environment they run in.
 
-The rule: **the repo holds the shape, the environment holds the values.**
+The repo holds the shape. The environment holds the values.
 
 ## What must not be committed
 
@@ -23,8 +23,8 @@ The rule: **the repo holds the shape, the environment holds the values.**
 | Network share paths | `<share-path>` |
 | Chassis, disk or BMC serial numbers | omit entirely |
 
-**Fine to keep:** Docker-internal service names and ports (`radarr:7878`,
-`socket-proxy:2375`) - they are not reachable outside the stack and the compose
+**Fine to keep:** Docker-internal service names and ports such as `radarr:7878`
+or `socket-proxy:2375`. They are not reachable outside the stack, and the compose
 files declare them anyway. Also fine: hardware models, PCI IDs and bus addresses,
 kernel and package versions, upstream URLs.
 
@@ -60,18 +60,18 @@ git log --all --diff-filter=A --name-only -- '.env' 'secrets/*' 'appdata/traefik
 ## Rules of thumb
 
 **Placeholders, not fake-but-plausible values.** `<pve-host>` reads as
-intentional; `192.168.1.50` reads as real and invites someone to copy it.
+intentional. `192.168.1.50` reads as real and invites someone to copy it.
 
 **A table of what you need beats a table of what it is.** Listing the fields
 without the values means nothing is forgotten and nothing is disclosed.
 
-**Compose files reference variables**, never inline values - including in
+**Compose files reference variables**, never inline values, including in
 comments. Homepage config uses `{{HOMEPAGE_VAR_X}}`, substituted at runtime, so
 those files stay committable.
 
 **Pasted terminal output is the usual leak.** Console captures carry hostnames,
 IPs and mount paths that prose would have abstracted. Scrub captured output or
-describe it instead. Same for screenshots.
+describe it instead. The same goes for screenshots.
 
 **Do not describe the contents of ignored paths.** Naming a directory in
 `.gitignore` is unavoidable; characterising what is in it tells a reader where
@@ -80,17 +80,17 @@ the unredacted material would be. Keep ignore rules bare.
 ## Moving files between directories
 
 Ignored paths can be frank; tracked paths cannot. Moving a file from an ignored
-directory into a tracked one publishes it. **Scrub at that moment**, not later.
+directory into a tracked one publishes it. Scrub at that moment, not later.
 
 Check before committing anything newly added:
 
 ```bash
 git status --short
-git check-ignore -v <path> || echo "tracked - scrub required"
+git check-ignore -v <path> || echo "tracked, scrub required"
 ```
 
 ## If something has already been committed
 
 Rotate first, redact second. A credential in git history is compromised
-regardless of later edits - history is public and already cloned. Regenerate it,
-then decide whether rewriting history is worth the disruption.
+regardless of later edits, because the history is public and already cloned.
+Regenerate it, then decide whether rewriting history is worth the disruption.

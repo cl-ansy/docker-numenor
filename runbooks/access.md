@@ -4,8 +4,8 @@ See also [updating.md](updating.md), [latency.md](latency.md), [storage.md](stor
 
 ## Addresses
 
-This table stays a template - the repo is public. Real addresses, ports and
-usernames go in `~/.ssh/config`, `.env`, and a password manager. The table is
+This table stays a template, because the repo is public. Real addresses, ports
+and usernames go in `~/.ssh/config`, `.env`, and a password manager. The table is
 here so nothing gets forgotten when the console is the only way in.
 
 | Thing | Value |
@@ -40,7 +40,7 @@ services sit behind Authentik SSO. Start at `https://<domain>` for the dashboard
 ssh <vm-host>
 ```
 
-Addressed directly, not under `<domain>` - that resolves to Traefik only.
+Addressed directly, not under `<domain>`, which resolves to Traefik only.
 
 ### Proxmox host
 
@@ -59,7 +59,7 @@ the VM's network is down.
 off. Launch KVM for a console, Power for a hard cycle.
 
 The Cisco Integrated Management Controller is a separate processor on the
-motherboard with its own network port and standby power - Dell calls theirs
+motherboard with its own network port and standby power. Dell calls theirs
 iDRAC, HP calls it iLO. It's the only way to reach BIOS setup, watch a boot, or
 fix a host that won't start, so every risky host change depends on it working.
 
@@ -68,8 +68,8 @@ If the web UI won't load in a current browser, the firmware only offers TLS
 
 #### Configuring it without a reboot
 
-As of 2026-08-22 CIMC reports `0.0.0.0` - no address. It can be set from the
-running host over the internal IPMI interface, no downtime:
+As of 2026-08-22 CIMC reports `0.0.0.0`, meaning no address. It can be set from
+the running host over the internal IPMI interface, with no downtime:
 
 ```bash
 apt install ipmitool
@@ -86,8 +86,8 @@ ipmitool lan set 1 defgw ipaddr <gateway>
 ipmitool lan print 1              # verify
 ```
 
-Static rather than DHCP - this is the layer you reach when other things are
-down, so its address shouldn't depend on a DHCP server that might also be down.
+Static rather than DHCP. This is the layer you reach when other things are down,
+so its address shouldn't depend on a DHCP server that might also be down.
 
 Two things `ipmitool` can't fix. The rear dedicated management port has to be
 cabled to a switch. And NIC mode (Dedicated vs Shared LOM) may only be reachable
@@ -121,11 +121,11 @@ The physical disks behind `local-lvm` are under **pve > Disks**.
 ## DNS
 
 `<domain>` resolves to Traefik. Every name under it lands on the Docker VM, where
-Traefik either matches a router or returns 404 - so `cimc.<domain>` reaches
+Traefik either matches a router or returns 404. So `cimc.<domain>` reaches
 Traefik, not the BMC.
 
-Traefik's file provider could proxy Proxmox and CIMC under `<domain>`. Don't do
-that: emergency access would then depend on the Docker stack being up.
+Traefik's file provider could proxy Proxmox and CIMC under `<domain>`. Don't.
+Emergency access would then depend on the Docker stack being up.
 
 Infrastructure is addressed directly, from `CIMC_HOST`, `PVE_HOST`, `NAS_HOST`
 and `OPNSENSE_HOST` in `.env`. A bare IP or a name from a separate zone both
@@ -147,7 +147,7 @@ no certificate, so browsers warn on the self-signed certs those devices serve.
 
 ## SSH
 
-sshd on the Docker VM does not listen on 22. Recover the port from the VM - this
+sshd on the Docker VM does not listen on 22. Recover the port from the VM. This
 reads the effective config including any `sshd_config.d/` drop-ins:
 
 ```bash
@@ -177,8 +177,8 @@ Host nas
 
 Keep customisations in `/etc/ssh/sshd_config.d/` rather than `sshd_config`
 itself. Drop-ins aren't package conffiles, so a distro upgrade won't offer to
-replace them - which matters most for `PasswordAuthentication no`, since the
-stock file leaves it commented and sshd defaults to `yes`.
+replace them. That matters most for `PasswordAuthentication no`: the stock file
+leaves it commented, and sshd defaults to `yes`.
 
 ## Commands
 
@@ -234,8 +234,8 @@ Paths come from `.env`, which is not in git. Copy `.env.example` to start.
 ## Adding a service to the dashboard
 
 Services are defined in `appdata/homepage/services.yaml`, not as `homepage.*`
-labels on the compose file. The two are independent mechanisms, so using both
-renders every service twice.
+labels on the compose file. Homepage supports both, and using both shows every
+service twice.
 
 ```yaml
 - Media:

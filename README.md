@@ -15,7 +15,7 @@ one file per service from `compose/`. That file is the list of what runs.
    - `cf_dns_api_token` - Cloudflare API token with Zone:DNS:Edit
 3. Create `$DOCKERDIR/appdata/traefik/acme/acme.json` with mode `600`.
 4. Set folder permissions to match `PUID`/`PGID`.
-5. Mount network storage - `scripts/mount_nfs.sh`, after setting the NAS address.
+5. Mount network storage with `scripts/mount_nfs.sh`, after setting the NAS address.
 6. Start the stack, then bootstrap Authentik at `https://auth.$DOMAINNAME/if/flow/initial-setup/`.
 
 ```bash

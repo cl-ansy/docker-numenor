@@ -48,9 +48,10 @@ time head -c 100M "$F" > /dev/null      # sequential read from the start
 time tail -c 10M  "$F" > /dev/null      # seek to end
 ```
 
-If `tail` is much slower than `head`, the container's index is at the end of the
-file - an MP4 with a trailing moov atom, or an MKV with cues at the end. Jellyfin
-has to reach the end of a multi-gigabyte file before it can start.
+If `tail` is much slower than `head`, the container's index sits at the end of
+the file. That happens with an MP4 carrying a trailing moov atom, or an MKV with
+cues at the end. Jellyfin has to reach the end of a multi-gigabyte file before it
+can start.
 
 Check the mount options too:
 

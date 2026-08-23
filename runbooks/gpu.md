@@ -15,7 +15,7 @@ How this configuration was arrived at, including the dead ends, is in
 | Card | Intel Arc A310, DG2 `[8086:56a6]` |
 | Host | Passed through as `hostpci0` / `hostpci1`, bound to `vfio-pci` |
 | Guest | Debian 13.6, kernel 6.12, driver `xe` (not i915) |
-| Kernel driver | Working - GuC and DMC firmware load, `renderD128` present |
+| Kernel driver | Working. GuC and DMC firmware load, `renderD128` present |
 | VA-API userspace | SIGBUS on packaged drivers; needs media-driver >= 26.3.1 |
 | BAR | 256MB, can't be enlarged on this platform |
 
@@ -23,7 +23,7 @@ The card gets a 256MB CPU-visible window instead of the 4GB it asks for, because
 the PCI bridges above it decode prefetchable memory as 32-bit only. That's
 firmware-level and can't be fixed here.
 
-It's survivable though, because
+The card still works despite it.
 [intel/media-driver#1990](https://github.com/intel/media-driver/pull/1990)
 (merged 2026-07-15) teaches the VA-API driver to allocate inside the visible
 window. Anything older crashes with SIGBUS.
@@ -32,8 +32,8 @@ Remaining task: build `intel-media-26.3.1` and point Jellyfin at it.
 
 ### Small BAR does not mean 256MB of VRAM
 
-All 4GB stays usable. The BAR is the CPU's window into VRAM, not a cap on it -
-the GPU addresses its own memory directly and the BAR isn't involved. dmesg
+All 4GB stays usable. The BAR is the CPU's window into VRAM, not a cap on it.
+The GPU addresses its own memory directly, without going through the BAR. dmesg
 reports both numbers:
 
 ```
@@ -48,8 +48,8 @@ accordingly: buffers the CPU never touches go anywhere, and buffers it reads or
 writes get flagged `NEEDS_VISIBLE_VRAM` and land in the 256MB region, or are
 staged through it.
 
-The cost is throughput rather than capacity - source frames in and encoded
-output back both funnel through 256MB. Fine for 1080p; 4K with large frame
+The cost is throughput rather than capacity. Source frames in and encoded output
+back both funnel through 256MB. That is fine for 1080p. 4K with large frame
 buffers will feel it more.
 
 ## Host configuration
@@ -69,7 +69,7 @@ cat /proc/cmdline | grep intel_iommu
 dmesg | grep -i -e DMAR -e IOMMU | head      # want "DMAR: IOMMU enabled"
 ```
 
-`iommu=pt` isn't set and isn't needed - it only optimises devices that aren't
+`iommu=pt` isn't set and isn't needed. It only optimises devices that aren't
 passed through.
 
 **vfio modules** in `/etc/modules`:
@@ -86,7 +86,7 @@ vfio_virqfd
 ### What's deliberately absent
 
 There's no `/etc/modprobe.d/vfio.conf` with `ids=`, and no `blacklist i915`.
-Neither is needed - modern Proxmox unbinds the host driver and binds `vfio-pci`
+Neither is needed. Modern Proxmox unbinds the host driver and binds `vfio-pci`
 when a VM with `hostpci` starts. The static `ids=` approach is PVE 5/6-era
 advice.
 
@@ -98,7 +98,8 @@ lspci -nnk -s 87:00
 ```
 
 Both should say `Kernel driver in use: vfio-pci`. With no VM running, the host's
-own i915 claims the card instead - harmless, since starting the VM rebinds it.
+own i915 claims the card instead. That is harmless, because starting the VM
+rebinds it.
 
 ### Risk when the host kernel is upgraded
 
@@ -165,8 +166,8 @@ with no display attached.
 
 ## Getting a working VA-API driver
 
-Needs media-driver 26.3.1 or later. Nothing packaged has it as of 2026-08-22 -
-Debian trixie is 25.2.3, sid is 26.1.6.
+Needs media-driver 26.3.1 or later. Nothing packaged has it as of 2026-08-22.
+Debian trixie is 25.2.3 and sid is 26.1.6.
 
 Release dates aren't commit cutoffs. `intel-media-26.2.4` was published
 2026-07-30, after the fix merged, but its branch was cut 2026-06-29 and doesn't
@@ -198,9 +199,9 @@ MEDIA_DRIVER_TAG=intel-media-26.3.2 ./build/media-driver/build.sh
 
 Four things that each cost a build cycle:
 
-- **Base is `debian:sid`** for libva 1.24. If the driver fails in the container with `GLIBC_2.xx not found`, sid has moved past the container's glibc - switch to `debian:trixie`, which matches at 2.41. trixie's libva 1.22 is fine, since libva falls back through older `__vaDriverInit_<maj>_<min>` symbols.
-- **`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`** - sid's CMake 4.x dropped `cmake_minimum_required(VERSION <3.5)`, which media-driver's vendored `cmrtlib` still declares. Needed for the gmmlib build too.
-- **gmmlib must be installed, not just checked out beside it** - media-driver finds it via `pkg_check_modules(igdgmm)`, which reads `igdgmm.pc`.
+- **Base is `debian:sid`** for libva 1.24. If the driver fails in the container with `GLIBC_2.xx not found`, sid has moved past the container's glibc. Switch to `debian:trixie`, which matches at 2.41. trixie's libva 1.22 still works, because libva falls back through older `__vaDriverInit_<maj>_<min>` symbols.
+- **`-DCMAKE_POLICY_VERSION_MINIMUM=3.5`.** sid's CMake 4.x dropped `cmake_minimum_required(VERSION <3.5)`, which media-driver's vendored `cmrtlib` still declares. Needed for the gmmlib build too.
+- **gmmlib must be installed, not just checked out beside it.** media-driver finds it via `pkg_check_modules(igdgmm)`, which reads `igdgmm.pc`.
 - **`-DCMAKE_BUILD_TYPE=Release` must be explicit.** media-driver prints `BUILD_TYPE not defined, default to: release` about its own variable, not CMake's. Without it you get an unoptimised 576MB `.so` instead of ~40MB.
 
 Delete `build/media-driver/` once Debian or jellyfin-ffmpeg ships 26.3.x. It
@@ -208,8 +209,8 @@ bridges a packaging lag and an unpackaged binary isn't worth keeping past that.
 
 ## Wiring it into Jellyfin
 
-In `compose/jellyfin.yml` - the render device, the host's numeric render GID, and
-the driver path:
+In `compose/jellyfin.yml`, add the render device, the host's numeric render GID,
+and the driver path:
 
 ```yaml
     devices:
@@ -238,12 +239,12 @@ sudo docker exec -it jellyfin sh -c \
 | Result | Meaning |
 |---|---|
 | `exit=0` with profiles listed | Working |
-| `exit=135` | Still SIGBUS - driver too old |
+| `exit=135` | Still SIGBUS. Driver too old |
 | Symbol or version error | `libigdgmm` mismatch; check `ldd` in the container |
 | `GLIBC_2.xx not found` | Build base too new; rebuild on `debian:trixie` |
 
-Then turn on QSV or VAAPI in Jellyfin > Dashboard > Playback - it doesn't switch
-on by itself - and watch a forced transcode with `intel_gpu_top`.
+Then turn on QSV or VAAPI in Jellyfin > Dashboard > Playback. It doesn't switch
+on by itself. Watch a forced transcode with `intel_gpu_top` to confirm.
 
 ## What hardware transcode does and doesn't fix
 
@@ -265,8 +266,8 @@ comfortable for 1080p and several concurrent streams, expensive for 4K HEVC -
 roughly one stream, possibly not real-time. Works today with no changes.
 
 **An NVIDIA card.** NVENC has no ReBAR requirement, sidestepping this entirely.
-Prefer 75W slot-powered with no auxiliary connector - a Tesla P4 is the classic
-UCS fit, a Quadro T400/T600 a lower-power modern option on a current driver
+Prefer 75W slot-powered with no auxiliary connector. A Tesla P4 is the classic
+UCS fit; a Quadro T400/T600 is a lower-power modern option on a current driver
 branch. Needs the NVIDIA driver plus `nvidia-container-toolkit` in the guest, and
 a `deploy.resources.reservations.devices` block rather than `/dev/dri`.
 
@@ -276,7 +277,7 @@ components, and an unrecognised PCIe card can pin the fans high permanently.
 ## Attacking the small BAR directly
 
 Optional now that the driver fix works within the 256MB window. Both need a
-console - physical, or CIMC configured per [access.md](access.md):
+console, either physical or CIMC configured per [access.md](access.md):
 
 1. **BIOS**: F2 > Advanced > PCI Configuration > Memory Mapped I/O Above 4 GB. Cisco documents this as enabled by default and the evidence suggests it already is.
 2. **A different PCIe slot.** `80:03.0` is a CPU2 root port; CPU1's slots were allocated separately by firmware.

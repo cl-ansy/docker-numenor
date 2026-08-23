@@ -13,8 +13,8 @@ through to the guest for Jellyfin hardware transcoding.
 
 ## Layer 1: the card isn't there
 
-Passthrough was configured - `hostpci0` and `hostpci1` on the VM - but the guest
-saw nothing usable:
+Passthrough was configured, with `hostpci0` and `hostpci1` on the VM, but the
+guest saw nothing usable:
 
 ```
 $ ls -l /dev/dri
@@ -80,7 +80,7 @@ card0  card1  renderD128
 ```
 
 Kernels often tell you exactly what to do. The 193-second `intel_pcode_init`
-timeout also explained why boots had become slow - a symptom that looked
+timeout also explained why boots had become slow, a symptom that had looked
 unrelated.
 
 ---
@@ -95,7 +95,7 @@ Bus error          # exit 135, SIGBUS
 ```
 
 The driver loads, then dies. Debian's `intel-media-va-driver` and Jellyfin's
-bundled build failed identically, and the kernel logged nothing - the fault was
+bundled build failed identically, and the kernel logged nothing. The fault was
 entirely in userspace.
 
 The cause had been scrolling past in the `xe` init messages all along:
@@ -107,7 +107,7 @@ xe: VRAM[0,0]: Actual physical size 4GB, CPU accessible size 256MB
 ```
 
 The BAR is the CPU's window into GPU VRAM. The card wants 4GB and got 256MB. The
-GPU can address all its memory regardless - only CPU access is constrained.
+GPU can still address all its memory. Only CPU access is constrained.
 
 ---
 
@@ -129,7 +129,7 @@ echo 12 > /sys/bus/pci/devices/0000:86:00.0/resource2_resize   # 4GB
 # write error: No space left on device
 ```
 
-`ENOSPC`, not `ENOTSUPP` - the mechanism works, there's just nowhere to put it.
+`ENOSPC`, not `ENOTSUPP`. The mechanism works, there's just nowhere to put it.
 
 `pci=realloc` on the host kernel command line is the documented fix for that. It
 changed nothing, at any size, down to 512MB.
@@ -143,14 +143,14 @@ The bridge chain explains why:
 ```
 
 A 32-bit prefetchable window can't address anything above 4GB. The host had
-terabytes of PCI space up there - `/proc/iomem` showed ranges at
-`0x38000000000` - but the bridges leading to the card couldn't reach it. Firmware
-enabled above-4G decoding globally while still programming root ports with small
-32-bit apertures, because it doesn't anticipate resizable BARs.
+terabytes of PCI space up there; `/proc/iomem` showed ranges at `0x38000000000`.
+The bridges leading to the card couldn't reach any of it. Firmware enabled
+above-4G decoding globally while still programming root ports with small 32-bit
+apertures, because it doesn't anticipate resizable BARs.
 
 This sits below the hypervisor, so a bare-metal install faces identical firmware
-allocation. Migrating off the hypervisor - which had been under consideration
-partly *for* this GPU - would not have helped.
+allocation. Migrating off the hypervisor had been under consideration partly for
+this GPU. It would not have helped.
 
 The BIOS state got inferred from indirect evidence twice here, landing on
 opposite conclusions and neither correct. Guest BAR addresses are QEMU's
@@ -165,7 +165,7 @@ At this point the obvious conclusion is "2015 server can't run a 2022 GPU." That
 conclusion is wrong, and stopping there would have meant buying hardware to solve
 a software problem.
 
-The kernel handles small BAR correctly - it reports the condition, exposes
+The kernel handles small BAR correctly. It reports the condition, exposes
 `CPU accessible size`, and initialises. It also provides a query so userspace can
 allocate inside the visible window. Intel's media driver wasn't calling it: it
 allocated its state heap in VRAM and `memset` it without checking, so on a 256MB
@@ -200,14 +200,14 @@ merged, but its branch was cut 2026-06-29, before it. Release dates aren't commi
 cutoffs.
 
 The solution was to build `intel-media-26.3.1` in a container, extract the `.so`,
-and point Jellyfin at it with `LIBVA_DRIVERS_PATH` - no custom Jellyfin image, so
-Jellyfin updates don't clobber it.
+and point Jellyfin at it with `LIBVA_DRIVERS_PATH`. That avoids a custom Jellyfin
+image, so Jellyfin updates don't clobber it.
 
 Four things went wrong in that build, none obvious:
 
 1. **CMake 4.x** (Debian sid) dropped support for `cmake_minimum_required(VERSION <3.5)`, which media-driver's vendored `cmrtlib` still declares. Needs `-DCMAKE_POLICY_VERSION_MINIMUM=3.5`.
-2. **gmmlib must be installed, not just checked out beside it** - media-driver finds it via `pkg_check_modules(igdgmm)`, which reads a `.pc` file.
-3. **`libigdgmm.so` has to ship with the driver**, which links against it at runtime - hence `LD_LIBRARY_PATH` alongside `LIBVA_DRIVERS_PATH`.
+2. **gmmlib must be installed, not just checked out beside it.** media-driver finds it via `pkg_check_modules(igdgmm)`, which reads a `.pc` file.
+3. **`libigdgmm.so` has to ship with the driver.** The driver links against it at runtime, which is why `LD_LIBRARY_PATH` is set alongside `LIBVA_DRIVERS_PATH`.
 4. **`CMAKE_BUILD_TYPE` must be set explicitly.** media-driver prints `BUILD_TYPE not defined, default to: release` about its own variable, not CMake's. Without it you get an unoptimised 576MB `.so` instead of ~40MB.
 
 ---
@@ -217,10 +217,10 @@ Four things went wrong in that build, none obvious:
 Three unrelated problems the same day, all the same shape: a component reporting
 success while the layer beneath silently discarded the work.
 
-**Redis** answered `PING`, so its healthcheck passed, so Docker reported it
-healthy, so dependents started - while it refused every write with `MISCONF`. It
-had been doing that for three weeks. The Celery worker couldn't acknowledge
-tasks, so they were redelivered hourly and re-executed indefinitely.
+**Redis** answered `PING` while refusing every write with `MISCONF`. The
+healthcheck passed, Docker reported it healthy, and dependents started. It had
+been doing that for three weeks. The Celery worker couldn't acknowledge tasks, so
+they were redelivered hourly and re-executed indefinitely.
 
 **`fstrim`** reported `309.2 GiB trimmed`. The thin pool didn't move. Without
 `discard=on` in the hypervisor, the guest device still advertises TRIM support,
@@ -245,6 +245,6 @@ driver version that's buildable today.
 Cost: one guest distro upgrade that was worth doing anyway, a driver selection
 config, and a container build.
 
-Not needed: a new GPU, a new server, or migrating off the hypervisor - which the
-investigation specifically ruled out as a fix, having started partly as an
+Not needed: a new GPU, a new server, or migrating off the hypervisor. The
+investigation ruled that last one out as a fix, having started partly as an
 argument for it.

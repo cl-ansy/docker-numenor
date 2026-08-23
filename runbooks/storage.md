@@ -26,7 +26,7 @@ Modular RAID Controller > Virtual Drive Info. Proxmox can't show them.
 
 ## Media disks: JBOD rather than RAID0
 
-No redundancy here by choice - media is re-acquirable, and mirroring halves
+No redundancy here by choice. Media is re-acquirable, and mirroring halves
 capacity. The only question is how the two disks are presented.
 
 | Config | Usable | One disk fails |
@@ -37,8 +37,9 @@ capacity. The only question is how the two disks are presented.
 | LVM linear across both | 2.40 TB | Corrupt filesystem, unpredictable loss |
 
 JBOD gives identical capacity. Striping buys sequential throughput this workload
-can't use - a 10K SAS drive sustains 150+ MB/s and a 4K remux streams at roughly
-12 MB/s - while turning a half-library loss into a whole-library loss.
+can't use: a 10K SAS drive sustains 150+ MB/s and a 4K remux streams at roughly
+12 MB/s. What it costs is failure granularity, turning a half-library loss into a
+whole-library loss.
 
 Don't span the two disks with LVM either. A single 2.40 TB filesystem across both
 means a disk failure corrupts the filesystem rather than losing a clean half.
@@ -69,9 +70,9 @@ breaks snapshots for any VM holding a disk there.
 
 ### Why not ZFS
 
-ZFS on a hardware RAID virtual drive is the configuration it's designed against -
-the controller hides the per-disk errors ZFS needs to repair anything. True JBOD
-weakens that objection, and ZFS on a JBOD-mode MegaRAID does work. The reasons
+ZFS on a hardware RAID virtual drive is the configuration it's designed against,
+because the controller hides the per-disk errors ZFS needs to repair anything.
+True JBOD weakens that objection, and ZFS on a JBOD-mode MegaRAID does work. The reasons
 not to use it here are about the data and the platform:
 
 - **Detection without repair.** Checksums are half the feature. With no redundancy ZFS reports corruption and can't fix it, which gains little over ext4 for files that can be re-downloaded.
@@ -83,9 +84,9 @@ not to use it here are about the data and the platform:
 Two ext4 filesystems on thin-pool-backed VM disks work on the current version
 with no RAM cost and snapshots intact.
 
-Where ZFS would earn its place is `appdata` rather than media - small, precious
-data where checksums, snapshots and `zfs send` all pay off. That needs a real HBA
-in IT mode and preferably no VM boundary.
+Where ZFS would earn its place is `appdata` rather than media. That is small,
+precious data where checksums, snapshots and `zfs send` all pay off. It needs a
+real HBA in IT mode and preferably no VM boundary.
 
 ## Attaching them to VM 100
 
@@ -108,7 +109,7 @@ qm config 100 | grep -E 'scsi[12]'      # both must show backup=0
 
 ## In the VM
 
-Confirm device names with `lsblk` first - they won't match the host's.
+Confirm device names with `lsblk` first. They won't match the host's.
 
 ```bash
 sudo mkfs.ext4 -L media1 /dev/sdb
@@ -156,7 +157,7 @@ sudo apt install mergerfs
 Without mergerfs, add both paths as separate libraries in Jellyfin and separate
 root folders in Radarr and Sonarr. All three support that.
 
-SnapRAID isn't worth it at two disks - parity would consume a full disk, which is
+SnapRAID isn't worth it at two disks. Parity would consume a full disk, which is
 RAID1 with extra steps. Reconsider at four or more.
 
 ## Exposing it to the containers
@@ -200,7 +201,7 @@ command after enabling discard reclaimed ~380G including a deleted snapshot.
 38.33% of 500G now matches actual guest usage rather than every block ever
 written.
 
-**`fstrim` output proves nothing** - it reports what the filesystem walked, not
+**`fstrim` output proves nothing.** It reports what the filesystem walked, not
 what the storage honoured. Verify at the pool:
 
 ```bash
@@ -244,8 +245,8 @@ lvs -a -o lv_name,vg_name,lv_size,data_percent,metadata_percent
 `data_percent` approaching 100 takes thin volumes read-only. `metadata_percent`
 does the same and fills faster when snapshots exist.
 
-The `pve/data` pool is overcommitted - provisioned virtual size exceeds the
-volume group. That's normal for thin provisioning and only matters if written
+The `pve/data` pool is overcommitted, meaning provisioned virtual size exceeds
+the volume group. That's normal for thin provisioning and only matters if written
 data approaches the physical size.
 
 ## Effect on a host rebuild
