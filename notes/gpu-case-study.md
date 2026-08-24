@@ -11,7 +11,7 @@ through to the guest for Jellyfin hardware transcoding.
 
 ---
 
-## Layer 1: the card isn't there
+## 1. GPU isn't there
 
 Passthrough was configured, with `hostpci0` and `hostpci1` on the VM, but the
 guest saw nothing usable:
@@ -40,16 +40,13 @@ $ lspci -nn | grep -iE 'vga|display|intel corporation'
 Passthrough was working. Rebuilding the VM's boot configuration would have been
 days of work for nothing.
 
-The folklore fix and the actual fix are often unrelated. Check what the guest
-actually sees before restructuring anything.
-
 *(Two PCI devices for one card because Arc puts its HDMI audio controller behind
 the card's own internal PCIe switch, on a separate bus. NVIDIA and AMD use
 function `.1` on the same device.)*
 
 ---
 
-## Layer 2: the driver won't bind
+## 2: Driver won't bind
 
 `dmesg` had the real message:
 
@@ -105,7 +102,7 @@ unrelated.
 
 ---
 
-## Layer 3: userspace crashes anyway
+## 3. Userspace crashes anyway
 
 ```console
 $ docker exec -it jellyfin sh -c \
@@ -121,10 +118,10 @@ exit=135
 Exit 135 is 128 + 7, meaning SIGBUS.
 
 The driver loads, then dies. Debian's `intel-media-va-driver` and Jellyfin's
-bundled build failed identically, and the kernel logged nothing. The fault was
+bundled build failed the same way, and the kernel logged nothing. The issue was
 entirely in userspace.
 
-The cause had been scrolling past in the `xe` init messages all along:
+The cause had been scrolling past in the `xe` init messages:
 
 ```console
 $ dmesg | grep -iE 'bar|vram'
@@ -135,12 +132,12 @@ $ dmesg | grep -iE 'bar|vram'
                CPU accessible size 0x0000000010000000
 ```
 
-The BAR is the CPU's window into GPU VRAM. The card wants 4GB and got 256MB. The
-GPU can still address all its memory. Only CPU access is constrained.
+The BAR (Base Address Register) is the CPU's window into GPU VRAM. The card wants 4GB and got 256MB.
+The GPU can still address all its memory. Only CPU access is constrained.
 
 ---
 
-## Layer 4: why the BAR can't grow
+## 4. BAR won't grow
 
 The card advertises the capability:
 
@@ -214,7 +211,7 @@ c8000000-fbffbfff : PCI Bus 0000:80
 
 The bridges leading to the card couldn't reach any of it. Firmware enabled
 above-4G decoding globally while still programming root ports with small 32-bit
-apertures, because it doesn't anticipate resizable BARs.
+apertures.
 
 This sits below the hypervisor, so a bare-metal install faces identical firmware
 allocation. Migrating off the hypervisor had been under consideration partly for
@@ -222,16 +219,24 @@ this GPU. It would not have helped.
 
 The BIOS state got inferred from indirect evidence twice here, landing on
 opposite conclusions and neither correct. Guest BAR addresses are QEMU's
-synthetic address space and say nothing about host firmware. Read the setting
-rather than reasoning about it.
+synthetic address space and say nothing about host firmware.
+
+The Cisco UCS servers don't support Resizable BAR (ReBAR is basically a PCIe feature
+that allows the CPU to access the GPU's entire vram at once, instead of in 256MB
+chunks) until at least the M6 generation, definitely not on my M4.
 
 ---
 
-## Layer 5: it's a software bug, and it's already fixed
+## 5. Software bug
 
-At this point the obvious conclusion is "2015 server can't run a 2022 GPU." That
+At this point the conclusion is nearing "2015 server can't run this 2022 GPU." That
 conclusion is wrong, and stopping there would have meant buying hardware to solve
 a software problem.
+
+Why do I actually need a resizable BAR? The GPU addresses its own memory directly
+through its memory controller. The BAR isn't involved in that at all. It exists so the
+host CPU can reach VRAM over PCIe, and that's the part limited to a 256MB window.
+It should still be usable with a less efficient small BAR.
 
 The kernel handles small BAR correctly. It reports the condition, exposes
 `CPU accessible size`, and initialises. It also provides a query so userspace can
@@ -254,7 +259,7 @@ software limitation, not a hardware requirement.
 
 ---
 
-## Layer 6: nothing packaged has the fix
+## 6. Fix not packaged
 
 | Source | Version | Has fix |
 |---|---|---|
@@ -263,9 +268,7 @@ software limitation, not a hardware requirement.
 | Upstream tag 26.2.4 | published 2026-07-30 | No |
 | Upstream tag 26.3.1 | | Yes |
 
-That third row is the trap. `26.2.4` was published two weeks after the fix
-merged, but its branch was cut 2026-06-29, before it. Release dates aren't commit
-cutoffs.
+`26.2.4` was published two weeks after the fix merged, but its branch was cut 2026-06-29, before it.
 
 The solution was to build `intel-media-26.3.1` in a container, extract the `.so`,
 and point Jellyfin at it with `LIBVA_DRIVERS_PATH`. That avoids a custom Jellyfin
@@ -280,32 +283,7 @@ Four things went wrong in that build, none obvious:
 
 ---
 
-## The pattern that showed up three times
-
-Three unrelated problems the same day, all the same shape: a component reporting
-success while the layer beneath silently discarded the work.
-
-**Redis** answered `PING` while refusing every write with `MISCONF`. The
-healthcheck passed, Docker reported it healthy, and dependents started. It had
-been doing that for three weeks. The Celery worker couldn't acknowledge tasks, so
-they were redelivered hourly and re-executed indefinitely.
-
-**`fstrim`** reported `309.2 GiB trimmed`. The thin pool didn't move. Without
-`discard=on` in the hypervisor, the guest device still advertises TRIM support,
-accepts the commands, and drops them. Enabling discard reclaimed ~380GB.
-
-**docker-gc's cron** was installed and correctly formatted, and had never fired.
-The image didn't accept the six-field expression it was configured with. It had
-been armed to delete volumes for a year without running once.
-
-In all three the check and the effect were never connected. Verify at the layer
-where the outcome lands, not the layer that reports on it: check the pool rather
-than `fstrim`'s output, and make the healthcheck perform a write rather than a
-ping.
-
----
-
-## Where it ended
+## Status
 
 Hardware fine. Kernel fine. Firmware limitation real but survivable. Blocked on a
 driver version that's buildable today.
