@@ -10,27 +10,26 @@ services:
       t3_proxy:
         ipv4_address: 192.168.90.254
       socket_proxy:
+      ops:
     ports:
       - 80:80
       - 443:443
     command:
       - --global.checkNewVersion=true
       - --global.sendAnonymousUsage=false
+      - --api=true
+      - --api.dashboard=true
 
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
-
       - --entrypoints.websecure.address=:443
       - --entrypoints.websecure.forwardedHeaders.trustedIPs=$CLOUDFLARE_IPS,$LOCAL_IPS
       - --entrypoints.websecure.http.tls=true
       - --entrypoints.websecure.http.tls.certresolver=dns-cloudflare
       - --entrypoints.websecure.http.tls.domains[0].main=$DOMAINNAME
       - --entrypoints.websecure.http.tls.domains[0].sans=*.$DOMAINNAME
-
-      - --api=true
-      - --api.dashboard=true
 
       - --log=true
       - --log.filePath=/logs/traefik.log
@@ -39,12 +38,15 @@ services:
       - --accessLog.filePath=/logs/access.log
       - --accessLog.bufferingSize=100
       - --accessLog.filters.statusCodes=200-299,400-499,500-599
+      - --metrics.prometheus=true
+      - --metrics.prometheus.addEntryPointsLabels=true
+      - --metrics.prometheus.addRoutersLabels=true
+      - --metrics.prometheus.addServicesLabels=true
 
       - --providers.docker=true
       - --providers.docker.endpoint=tcp://socket-proxy:2375
       - --providers.docker.exposedByDefault=false
       - --providers.docker.network=t3_proxy
-
       - --providers.file.directory=/rules
       - --providers.file.watch=true
 
