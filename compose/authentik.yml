@@ -8,6 +8,7 @@ services:
     networks:
       - t3_proxy
       - db
+      - ops
     command: server
     user: ${PUID}:${PGID}
     depends_on:
@@ -58,6 +59,7 @@ services:
       - t3_proxy
       - socket_proxy
       - db
+      - ops
     command: worker
     user: ${PUID}:${PGID}
     depends_on:

@@ -10,6 +10,10 @@ scrape_configs:
     static_configs:
       - targets: ["traefik:8080"]
 
+  - job_name: "authentik"
+    static_configs:
+      - targets: ["authentik:9300", "authentik-worker:9300"]
+
   - job_name: "sonarr-exporter"
     static_configs:
       - targets: ["sonarr-exporter:9707"]
