@@ -18,6 +18,10 @@ services:
       TZ: $TZ
       LIBVA_DRIVERS_PATH: $IHDDIR
       LD_LIBRARY_PATH: $IHDDIR
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "105"
     volumes:
       - $DOCKERDIR/appdata/jellyfin:/config
       - $SHAREDDIR/media:/data/media
