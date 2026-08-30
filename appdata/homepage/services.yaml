@@ -30,6 +30,20 @@
           # shared dashboard, and "is anyone watching" is the summary question.
           enableNowPlaying: false
 
+    - TV Tuner:
+        icon: hdhomerun.png
+        href: http://{{HOMEPAGE_VAR_TV_TUNER}}
+        description: Live TV Tuner
+        widget:
+          type: customapi
+          url: http://{{HOMEPAGE_VAR_TV_TUNER}}/status.json
+          display: dynamic-list
+          mappings:
+            name: VctNumber
+            label: SignalQualityPercent
+            format: percent
+            limit: 4
+
     # Jellyseerr is not enabled - uncomment its include in docker-compose-main.yml
     # first, then set JELLYSEERR_API_KEY in .env and uncomment this block.
     # - Jellyseerr:

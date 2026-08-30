@@ -30,6 +30,7 @@ services:
       HOMEPAGE_VAR_PVE: $PVE_HOST
       HOMEPAGE_VAR_NAS: $NAS_HOST
       HOMEPAGE_VAR_OPNSENSE: $OPNSENSE_HOST
+      HOMEPAGE_VAR_TV_TUNER: $TV_TUNER_HOST
       # Widget API keys. Previously these sat in homepage.widget.key labels on
       # the service containers, where anything with docker inspect could read
       # them. Now they exist only here.
