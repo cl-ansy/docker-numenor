@@ -16,8 +16,6 @@ services:
     environment:
       UMASK_SET: 022
       TZ: $TZ
-      LIBVA_DRIVERS_PATH: $IHDDIR
-      LD_LIBRARY_PATH: $IHDDIR
     devices:
       - /dev/dri:/dev/dri
     group_add:
@@ -26,7 +24,11 @@ services:
       - $DOCKERDIR/appdata/jellyfin:/config
       - $SHAREDDIR/media:/data/media
       - $DOWNLOADSDIR:/data/downloads
-      - $IHDDIR:$IHDDIR:ro
+      # jellyfin-ffmpeg's bundled libva ignores LIBVA_DRIVERS_PATH; it's
+      # hardcoded to /usr/lib/jellyfin-ffmpeg/lib. Overlay the built driver
+      # directly on top of the bundled (SIGBUS-crashing) one instead.
+      - $IHDDIR/iHD_drv_video.so:/usr/lib/jellyfin-ffmpeg/lib/dri/iHD_drv_video.so:ro
+      - $IHDDIR/libigdgmm.so.12.10.0:/usr/lib/jellyfin-ffmpeg/lib/libigdgmm.so.12.9.0:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.jellyfin-rtr.entrypoints=web,websecure
