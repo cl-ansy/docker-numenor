@@ -53,6 +53,7 @@ include:
   - compose/authentik.yml
   # MEDIA
   - compose/jellyfin.yml
+  - compose/xmltv.yml
   # APPS
   - compose/portainer.yml
   - compose/homepage.yml

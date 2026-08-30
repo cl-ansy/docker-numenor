@@ -2,6 +2,9 @@
 
 Jellyfin slow to start playback. See also [access.md](access.md), [gpu.md](gpu.md).
 
+The numbered checks below assume a file on the NAS. Live TV never touches that
+path, so skip to [Live TV is a different path](#live-tv-is-a-different-path).
+
 ## Check before assuming it's the GPU
 
 Hardware encode improves frames per second and how many streams run at once. It
@@ -124,6 +127,103 @@ ethtool <iface> | grep -i speed
 
 The C240 M4 often has a Cisco VIC (1225/1227/1385) capable of 10GbE alongside the
 onboard i350 1GbE. Check you aren't on the i350 with a 10GbE adapter sitting idle.
+
+## Live TV is a different path
+
+No NAS read, no spin-up, no file probe. Checks 1 to 7 don't apply. The delay is
+the tuner locking, the broadcast standard, or a transcode.
+
+### ATSC 1.0 vs 3.0
+
+An ATSC 3.0 tuner receives both. Stations broadcast the two side by side during
+the transition, so the same callsign often appears twice in the lineup.
+
+| | ATSC 1.0 | ATSC 3.0 |
+|---|---|---|
+| Video | MPEG-2 | HEVC |
+| Audio | AC-3 | AC-4 |
+| Modulation | 8VSB | OFDM |
+| Delivery | Continuous transport stream | IP, segmented as DASH over ROUTE |
+| Typical tune-in | ~2s | 3s to 18s |
+
+3.0 is slower to tune because it is segmented. The tuner waits for a segment
+boundary and the first I-frame of a group of pictures before it can emit
+anything. That floor belongs to the standard and no change here removes it.
+
+A market's 3.0 channels usually share one RF channel, so they arrive as a group.
+
+### Which channels are which
+
+The lineup gives no ATSC version field, so probe the codecs instead. MPEG-2 plus
+AC-3 is 1.0, HEVC plus AC-4 is 3.0:
+
+```bash
+curl -s "http://<tuner>/lineup.json" \
+  | jq -r '.[] | "\(.GuideNumber)\t\(.GuideName)\t\(.URL)"' \
+  | while IFS=$'\t' read -r num name url; do
+      codecs=$(sudo docker exec jellyfin /usr/lib/jellyfin-ffmpeg/ffprobe \
+        -v error -analyzeduration 3M -probesize 5M \
+        -show_entries stream=codec_type,codec_name -of csv=p=0 "$url" 2>/dev/null \
+        | paste -sd' ')
+      printf '%-8s %-24s %s\n' "$num" "$name" "${codecs:-probe failed}"
+    done
+```
+
+Each probe occupies a tuner and takes a few seconds, so this runs as long as the
+lineup is big. Stop it once the pattern is obvious.
+
+### AC-4 audio has no decoder
+
+ffmpeg cannot decode AC-4, including the jellyfin-ffmpeg build
+([jellyfin-ffmpeg#311](https://github.com/jellyfin/jellyfin-ffmpeg/issues/311),
+[jellyfin#9307](https://github.com/jellyfin/jellyfin/issues/9307), open as of
+2026-08). A 3.0 channel carrying AC-4 therefore cannot be transcoded. It plays
+only where the client decodes AC-4 directly, and otherwise fails or runs silent.
+
+This is worth establishing before chasing a timing problem. Silent or failing 3.0
+channels are this, not the tuner.
+
+### Checks in order
+
+Stop at the first one that explains the delay.
+
+**1. Time the tuner alone.** `time_starttransfer` is time to first byte, which is
+the lock. Compare a 3.0 channel against a 1.0 one on the same tuner:
+
+```bash
+curl -s -o /dev/null -w '%{time_starttransfer}\n' --max-time 30 "http://<tuner>/auto/v<atsc3-channel>"
+curl -s -o /dev/null -w '%{time_starttransfer}\n' --max-time 30 "http://<tuner>/auto/v<atsc1-channel>"
+```
+
+Slow on 3.0 and fast on 1.0 is the standard, and you are done. Both fast means
+the delay is entirely Jellyfin's.
+
+**2. Is it transcoding.** Play the channel, then open Dashboard > Playback. HEVC
+into a client that wants H.264 is a full CPU transcode, and Jellyfin writes HLS
+segments before the client sees a frame. Switching that client to one that takes
+HEVC removes more startup delay than anything else available.
+
+**3. Signal quality.** A marginal signal makes the tuner retry rather than fail.
+`status.json` reports only tuners currently in use, so read it while the slow
+channel is playing:
+
+```bash
+curl -s "http://<tuner>/status.json" | jq
+```
+
+Want `SignalStrengthPercent` above 75, with `SignalQualityPercent` and
+`SymbolQualityPercent` at or near 100. Low symbol quality alongside high signal
+strength is interference rather than a weak signal.
+
+**4. Transcode scratch location.** Same as check 6 above, and it costs more here
+because Live TV transcodes continuously rather than once.
+
+### The GPU won't fix this
+
+Same reasoning as at the top of this file. Hardware encode changes sustained
+throughput and concurrent stream count, not time to first frame. Finishing
+[gpu.md](gpu.md) will fix stutter on 4K HEVC. It will not make channels start
+faster, and it does nothing for AC-4.
 
 ## Slow browsing is a different problem
 

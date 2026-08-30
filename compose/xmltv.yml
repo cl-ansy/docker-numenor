@@ -1,0 +1,11 @@
+services:
+  xmltv:
+    image: ghcr.io/cl-ansy/xmltv-gateway:latest
+    networks:
+      - t3_proxy
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      PROVIDER: hdhomerun
+      HDHOMERUN_HOST: $TV_TUNER_HOST
+    restart: unless-stopped
