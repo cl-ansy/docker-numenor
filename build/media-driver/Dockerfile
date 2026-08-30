@@ -39,12 +39,18 @@ RUN git clone --depth 1 https://github.com/intel/gmmlib.git \
 # pkg_check_modules(igdgmm), which reads igdgmm.pc. Installed to the image so
 # the media-driver build finds it, and into /out so it ships alongside the
 # driver, which links against libigdgmm.so at runtime.
+#
+# -j capped at half of nproc, not full. A full-parallelism build of
+# media-driver's codec backend (every GPU generation, at once) pushed the VM's
+# shared 16-48 vCPUs into enough memory pressure to hang the whole guest -
+# unresponsive to SSH and to the Proxmox console both, needing a hard
+# qm stop/start to recover. Nothing else on the VM survives that gracefully.
 RUN mkdir build_gmm && cd build_gmm \
     && cmake ../gmmlib \
          -DCMAKE_BUILD_TYPE=Release \
          -DCMAKE_INSTALL_PREFIX=/usr \
          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    && make -j"$(nproc)" \
+    && make -j"$(( ($(nproc) + 1) / 2 ))" \
     && make install \
     && make install DESTDIR=/out
 
@@ -54,7 +60,7 @@ RUN mkdir build_media && cd build_media \
          -DCMAKE_INSTALL_PREFIX=/usr \
          -DMEDIA_BUILD_FATAL_WARNINGS=OFF \
          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-    && make -j"$(nproc)" \
+    && make -j"$(( ($(nproc) + 1) / 2 ))" \
     && make install DESTDIR=/out
 
 RUN mkdir /dist \
