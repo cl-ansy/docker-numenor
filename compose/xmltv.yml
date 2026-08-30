@@ -1,6 +1,7 @@
 services:
   xmltv:
     image: ghcr.io/cl-ansy/xmltv-gateway:latest
+    container_name: xmltv
     networks:
       - t3_proxy
     security_opt:
