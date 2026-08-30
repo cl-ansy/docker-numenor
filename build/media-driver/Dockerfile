@@ -5,14 +5,20 @@
 # which isn't supported on the C240 M4. VA-API will crash because it assumes
 # rebar and tries to map a region outside the visible 256MB window (small bar)
 #
-# sid supplies libva 1.24, matching Jellyfin's bundled 1.23 more closely.
+# Built against trixie, not sid. sid supplies libva 1.24, which looked like the
+# closer match to Jellyfin's bundled 1.23 runtime - it isn't. A driver built
+# against sid failed to load under the 1.23.0 runtime with "has no function
+# __vaDriverInit_1_0": the fallback chain exhausted every version it knew about
+# and found nothing, because compatibility only flows one direction. A newer
+# libva runtime can fall back to an older driver's __vaDriverInit_<maj>_<min>
+# symbol; it can't call a symbol from a driver built against a newer API than
+# itself. trixie's libva is 1.22, below the runtime's 1.23, so the fallback
+# actually reaches it.
 #
-# If the resulting driver fails in the container with GLIBC_2.xx-not-found, sid
-# has moved past the container's glibc - switch this to debian:trixie, which
-# matches it exactly (2.41). trixie's libva is 1.22, which is fine: libva falls
-# back through older __vaDriverInit_<maj>_<min> symbols, so a 1.22 driver loads
-# under 1.23.
-FROM debian:sid AS build
+# trixie's glibc (2.41) also matches the container's exactly, avoiding a
+# separate GLIBC_2.xx-not-found failure sid can produce once it moves past the
+# container's glibc version.
+FROM debian:trixie AS build
 
 ARG MEDIA_DRIVER_TAG=intel-media-26.3.1
 
