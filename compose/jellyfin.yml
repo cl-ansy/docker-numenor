@@ -16,10 +16,13 @@ services:
     environment:
       UMASK_SET: 022
       TZ: $TZ
+      LIBVA_DRIVERS_PATH: $IHDDIR
+      LD_LIBRARY_PATH: $IHDDIR
     volumes:
       - $DOCKERDIR/appdata/jellyfin:/config
       - $SHAREDDIR/media:/data/media
       - $DOWNLOADSDIR:/data/downloads
+      - $IHDDIR:$IHDDIR:ro
     labels:
       - traefik.enable=true
       - traefik.http.routers.jellyfin-rtr.entrypoints=web,websecure
