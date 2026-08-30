@@ -7,6 +7,11 @@ appdata/*
 appdata/authentik/*
 !appdata/authentik/brand
 !appdata/homepage
+!appdata/jellyfin
+appdata/jellyfin/*
+!appdata/jellyfin/config
+appdata/jellyfin/config/*
+!appdata/jellyfin/config/encoding.xml
 !appdata/traefik
 appdata/traefik/*
 !appdata/traefik/rules

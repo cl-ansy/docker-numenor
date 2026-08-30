@@ -283,14 +283,92 @@ Four things went wrong in that build, none obvious:
 
 ---
 
+## 7. Wired correctly, still crashes: wrong redirection mechanism
+
+Driver built, `/dev/dri` passed through, `LIBVA_DRIVERS_PATH` and
+`LD_LIBRARY_PATH` pointed at the built driver per the standard libva
+convention. `vainfo` still opened the bundled, pre-fix driver and SIGBUSed:
+
+```console
+$ docker exec jellyfin sh -c \
+    'echo LIBVA=$LIBVA_DRIVERS_PATH; ls -la $LIBVA_DRIVERS_PATH'
+LIBVA=/opt/iHD
+-rw-r--r-- 1 root root 45709248 ... iHD_drv_video.so
+...
+$ docker exec jellyfin sh -c \
+    '/usr/lib/jellyfin-ffmpeg/vainfo --display drm --device /dev/dri/renderD128'
+libva info: Trying to open /usr/lib/jellyfin-ffmpeg/lib/dri/iHD_drv_video.so
+Bus error
+```
+
+The environment variable was correctly set and visible in the container. It
+made no difference, even set explicitly inline on the command rather than
+relying on inheritance. jellyfin-ffmpeg's bundled `libva.so.2` doesn't honor
+`LIBVA_DRIVERS_PATH` - it's hardcoded to only search its own
+`/usr/lib/jellyfin-ffmpeg/lib/dri`, a self-containment choice, not a bug in
+the usual sense.
+
+The fix isn't redirection, it's replacement: bind-mount the built driver
+directly over the bundled one, at the exact path jellyfin-ffmpeg is hardcoded
+to load from, rather than trying to point it somewhere else.
+
+## 8. Replaced, still crashes: wrong libva to build against
+
+With the file overlay in place, `vainfo` finally loaded the *built* driver -
+and hit a different failure:
+
+```console
+libva error: /usr/lib/jellyfin-ffmpeg/lib/dri/iHD_drv_video.so has no function __vaDriverInit_1_0
+```
+
+The build used `debian:sid`, on the reasoning that its libva (1.24) was the
+closer version match to jellyfin-ffmpeg's bundled runtime (1.23.0). Closer
+turned out to be the wrong direction. A driver exports an init symbol named
+for the libva API version it was built against
+(`__vaDriverInit_<major>_<minor>`), and compatibility only flows one way: a
+newer runtime can fall back through older symbol names, the way trixie's
+libva 1.22 was already expected to work under a 1.23 runtime. A runtime can't
+call a symbol from a driver built against an API version newer than itself.
+Building against sid's 1.24 produced a driver the 1.23.0 runtime had no name
+for, and the fallback chain exhausted everything it knew about before giving
+up.
+
+Switching the Dockerfile's base to `debian:trixie` (already anticipated as the
+fallback in its own comments, for a different reason - a glibc mismatch that
+never actually happened) fixed it.
+
+## 9. The build itself took the server down
+
+Rebuilding with `-j"$(nproc)"` uncapped, on the shared VM, pushed memory
+pressure high enough to hang the entire guest mid-compile - not just the
+build, everything on it. SSH stopped responding. The Proxmox noVNC console,
+which reaches the VM through the hypervisor rather than its own network
+stack, was also unresponsive: not a network problem, the guest itself had
+locked up.
+
+The host stayed reachable throughout - Proxmox's own UI worked the whole
+time, confirming this was isolated to the guest, not the physical machine.
+Recovered with a hard `qm stop 100` / `qm start 100`, since a graceful
+shutdown depends on the guest responding to it, which it couldn't.
+
+The build survived the reboot in the sense that nothing was corrupted, but it
+hadn't actually finished - the container never reached its final copy-out
+step, so `/opt/iHD` still held the old, pre-rebuild files under timestamps
+that looked deceptively current. Capped at half of `nproc` for the retry.
+Took longer. Didn't take the server with it.
+
 ## Status
 
-Hardware fine. Kernel fine. Firmware limitation real but survivable. Blocked on a
-driver version that's buildable today.
+Working, end to end. `vainfo` confirms `va_openDriver() returns 0`, driver
+version `26.3.1 (e10792d)`, with MPEG2, H.264, HEVC (10/12-bit and 4:4:4
+included), VP9 and AV1 all listed for both decode and encode.
 
-Cost: one guest distro upgrade that was worth doing anyway, a driver selection
-config, and a container build.
+Cost beyond the original build: two more debugging passes (a redirection
+mechanism that doesn't work how the documentation everywhere says it should,
+and a libva version chosen for looking close instead of being compatible),
+and a genuine operational incident from an unthrottled parallel build on
+shared infrastructure.
 
-Not needed: a new GPU, a new server, or migrating off the hypervisor. The
-investigation ruled that last one out as a fix, having started partly as an
-argument for it.
+Not needed: a new GPU, a new server, migrating off the hypervisor, or a
+forked Jellyfin image. Everything that was wrong was in how the pieces were
+wired together, not in the hardware, the kernel, or the driver fix itself.

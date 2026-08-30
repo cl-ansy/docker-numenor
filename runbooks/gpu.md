@@ -8,7 +8,7 @@ VM 100, and from there into the Jellyfin container.
 How this configuration was arrived at, including the dead ends, is in
 `notes/gpu-case-study.md`.
 
-## State as of 2026-08-22
+## State as of 2026-08-30
 
 | Layer | State |
 |---|---|
@@ -16,7 +16,7 @@ How this configuration was arrived at, including the dead ends, is in
 | Host | Passed through as `hostpci0` / `hostpci1`, bound to `vfio-pci` |
 | Guest | Debian 13.6, kernel 6.12, driver `xe` (not i915) |
 | Kernel driver | Working. GuC and DMC firmware load, `renderD128` present |
-| VA-API userspace | SIGBUS on packaged drivers; needs media-driver >= 26.3.1 |
+| VA-API userspace | Working. `media-driver 26.3.1` built against `debian:trixie`, overlaid onto the jellyfin-ffmpeg image |
 | BAR | 256MB, can't be enlarged on this platform |
 
 The card gets a 256MB CPU-visible window instead of the 4GB it asks for, because
@@ -28,7 +28,11 @@ The card still works despite it.
 (merged 2026-07-15) teaches the VA-API driver to allocate inside the visible
 window. Anything older crashes with SIGBUS.
 
-Remaining task: build `intel-media-26.3.1` and point Jellyfin at it.
+`vainfo` confirms it end to end: `va_openDriver() returns 0`, driver version
+`26.3.1 (e10792d)`, with MPEG2, H.264, HEVC (including 10/12-bit and 4:4:4),
+VP9 and AV1 all listed for decode and encode. Remaining task: turn hardware
+acceleration on in Jellyfin's own Dashboard - the driver working doesn't mean
+Jellyfin is using it yet, see the end of this file.
 
 ### Small BAR does not mean 256MB of VRAM
 
@@ -209,26 +213,44 @@ bridges a packaging lag and an unpackaged binary isn't worth keeping past that.
 
 ## Wiring it into Jellyfin
 
-In `compose/jellyfin.yml`, add the render device, the host's numeric render GID,
-and the driver path:
+In `compose/jellyfin.yml`, add the render device and the host's numeric render
+GID:
 
 ```yaml
     devices:
       - /dev/dri:/dev/dri
     group_add:
       - "105"                     # getent group render
-    environment:
-      LIBVA_DRIVERS_PATH: /opt/iHD
-      LD_LIBRARY_PATH: /opt/iHD
-    volumes:
-      - /opt/iHD:/opt/iHD:ro
 ```
 
 The numeric GID is required. The service runs `user: $PUID:$PGID`, which drops
 supplementary groups, and a group name won't resolve inside the container.
 
-`LD_LIBRARY_PATH` makes the driver find the `libigdgmm` built alongside it rather
-than an older one in the image.
+### The driver has to overlay the bundled one, not sit beside it
+
+`LIBVA_DRIVERS_PATH`/`LD_LIBRARY_PATH` pointed at `/opt/iHD` is the documented,
+standard way to redirect libva to an external driver - and it doesn't work
+here. jellyfin-ffmpeg's bundled `libva.so.2` is hardcoded to only search its
+own `/usr/lib/jellyfin-ffmpeg/lib/dri`, ignoring `LIBVA_DRIVERS_PATH` even set
+explicitly inline on the command, not just inherited from the container
+environment. Confirmed by testing both.
+
+The fix is to bind-mount the built files directly over the bundled,
+SIGBUS-crashing ones, at the exact paths jellyfin-ffmpeg is hardcoded to load
+from:
+
+```yaml
+    volumes:
+      - /opt/iHD/iHD_drv_video.so:/usr/lib/jellyfin-ffmpeg/lib/dri/iHD_drv_video.so:ro
+      - /opt/iHD/libigdgmm.so.12.10.0:/usr/lib/jellyfin-ffmpeg/lib/libigdgmm.so.12.9.0:ro
+```
+
+The `libigdgmm` mount targets the *bundled* filename
+(`libigdgmm.so.12.9.0`), not whatever version number the build actually
+produced - `gmmlib` isn't pinned to a tag in `build.sh`, so its version drifts
+between builds. Match the mount's target to whatever's currently bundled
+(`ls /usr/lib/jellyfin-ffmpeg/lib/ | grep gmm` in the container) rather than
+assuming it's still `.12.9.0`.
 
 ```bash
 dcup
@@ -239,12 +261,22 @@ sudo docker exec -it jellyfin sh -c \
 | Result | Meaning |
 |---|---|
 | `exit=0` with profiles listed | Working |
-| `exit=135` | Still SIGBUS. Driver too old |
-| Symbol or version error | `libigdgmm` mismatch; check `ldd` in the container |
-| `GLIBC_2.xx not found` | Build base too new; rebuild on `debian:trixie` |
+| `Bus error`, exit=135 | Still SIGBUS. Driver too old, or the overlay isn't reaching the container |
+| `has no function __vaDriverInit_1_0` | Driver built against a libva newer than the runtime's. Rebuild on `debian:trixie`, not `sid` - see the Dockerfile comments |
+| `Failed to open the given device!` | `/dev/dri` isn't mounted, or the container hasn't been recreated since it was added - check `docker exec jellyfin ls -l /dev/dri` |
+| `GLIBC_2.xx not found` | Build base too new for the container's glibc; rebuild on `debian:trixie` |
 
 Then turn on QSV or VAAPI in Jellyfin > Dashboard > Playback. It doesn't switch
 on by itself. Watch a forced transcode with `intel_gpu_top` to confirm.
+
+### Building it
+
+`-j"$(nproc)"` in the Dockerfile is capped at half of `nproc`, not full. A
+full-parallelism build of media-driver's codec backend once pushed this VM's
+shared vCPUs into enough memory pressure to hang the entire guest -
+unresponsive to SSH and to the Proxmox console both, needing a hard
+`qm stop`/`qm start` to recover. Nothing else sharing that VM survives a full
+box hang gracefully.
 
 ## What hardware transcode does and doesn't fix
 
