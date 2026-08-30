@@ -143,20 +143,3 @@
         description: Container Logs
         server: my-docker
         container: dozzle
-
-# Proxmox is not a container, so it can only be defined here. Undecided - see
-# .plans/homepage-widgets.md. Create the token at Datacenter > Permissions >
-# API Tokens; username is the full user@realm!TokenID string.
-#
-# - Infrastructure:
-#     - Proxmox:
-#         icon: proxmox.png
-#         href: https://pve.lan:8006
-#         description: Hypervisor
-#         widget:
-#           type: proxmox
-#           url: https://pve.lan:8006
-#           username: homepage@pam!homepage
-#           password: "{{HOMEPAGE_VAR_PVE_TOKEN}}"
-#           node: pve
-#           fields: ["vms", "lxc"]
