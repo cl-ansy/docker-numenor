@@ -35,24 +35,15 @@
         widget:
           type: customapi
           url: http://{{HOMEPAGE_VAR_TV_TUNER}}/status.json
-          display: list
           mappings:
-            - field: 0.VctNumber
+            - field: 0.SignalQualityPercent
               label: Tuner 0
-              additionalField:
-                field: 0.SignalQualityPercent
-            - field: 1.VctNumber
+            - field: 1.SignalQualityPercent
               label: Tuner 1
-              additionalField:
-                field: 1.SignalQualityPercent
-            - field: 2.VctNumber
+            - field: 2.SignalQualityPercent
               label: Tuner 2
-              additionalField:
-                field: 2.SignalQualityPercent
-            - field: 3.VctNumber
+            - field: 3.SignalQualityPercent
               label: Tuner 3
-              additionalField:
-                field: 3.SignalQualityPercent
 
 - PVR:
     - Radarr:
