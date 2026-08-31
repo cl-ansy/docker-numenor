@@ -41,34 +41,18 @@
               label: Tuner 0
               additionalField:
                 field: 0.SignalQualityPercent
-            - field: 0.SignalStrengthPercent
-              label: Tuner 0 Signal
-              additionalField:
-                field: 0.SymbolQualityPercent
             - field: 1.VctNumber
               label: Tuner 1
               additionalField:
                 field: 1.SignalQualityPercent
-            - field: 1.SignalStrengthPercent
-              label: Tuner 1 Signal
-              additionalField:
-                field: 1.SymbolQualityPercent
             - field: 2.VctNumber
               label: Tuner 2
               additionalField:
                 field: 2.SignalQualityPercent
-            - field: 2.SignalStrengthPercent
-              label: Tuner 2 Signal
-              additionalField:
-                field: 2.SymbolQualityPercent
             - field: 3.VctNumber
               label: Tuner 3
               additionalField:
                 field: 3.SignalQualityPercent
-            - field: 3.SignalStrengthPercent
-              label: Tuner 3 Signal
-              additionalField:
-                field: 3.SymbolQualityPercent
 
 - PVR:
     - Radarr:

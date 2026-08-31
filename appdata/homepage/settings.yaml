@@ -6,8 +6,6 @@ title: Numenor
 headerStyle: boxed
 statusStyle: dot
 
-# Groups come from homepage.group labels on the compose services.
-# Order here controls display order; anything not listed lands at the end.
 layout:
   Infrastructure:
     style: row
@@ -24,8 +22,6 @@ layout:
   Monitoring:
     style: row
     columns: 2
-  # Service groups all sit at 2 columns so every card is the same width.
-  # Infrastructure is 4 because bookmarks are compact single rows.
   Management:
     style: row
     columns: 2
