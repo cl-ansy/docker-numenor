@@ -357,18 +357,81 @@ step, so `/opt/iHD` still held the old, pre-rebuild files under timestamps
 that looked deceptively current. Capped at half of `nproc` for the retry.
 Took longer. Didn't take the server with it.
 
+## 10. Working driver, still no working encode
+
+`vainfo` reporting full capability was not the same thing as a working
+pipeline. First real transcode - a Blu-ray remux through QSV - died on frame
+zero:
+
+```
+[h264_qsv @ 0x...] Error during encoding: GPU Hang (-21)
+```
+
+A simpler test removed every variable that might explain it away. Plain Live
+TV, MPEG2 to H264, no subtitle overlay, no complex filter graph - same
+outcome, different error:
+
+```
+[h264_qsv @ 0x...] Invalid FrameType:0.
+```
+
+Switching from the QSV bridge (`h264_qsv`, which derives a QSV device from
+the VAAPI one) to encoding straight through VAAPI (`h264_vaapi`, no bridge at
+all) ruled out the bridge as the cause - it failed too, same frame, third
+error:
+
+```
+[h264_vaapi @ 0x...] Failed to map output buffers: 24 (internal encoding error).
+```
+
+Three attempts, three different specific errors, identical failure point
+every time: first frame, at encode submission, never during decode. Decode
+alone - forcing software encode while keeping hardware decode on - worked
+cleanly. The fault is isolated to encode specifically, not the QSV/VAAPI
+choice and not decode.
+
+Two explanations fit, not distinguished: the `24` in the VAAPI error reads
+like an output buffer pool size, and encode needs several reference frames
+plus a coded-output pool live simultaneously - a much bigger footprint than
+decode's couple of reference buffers - which the 256MB window may simply not
+have room for. Or this specific from-source build's encode path is just
+immature; Arc encode support is a recurring rough spot across unrelated
+community reports, independent of BAR size, and this driver had never been
+run against a real pipeline before today. A lower-resolution encode test
+would have told them apart. Not run - see below for why.
+
+## 11. Chassis swap doesn't fix it, checked before giving up
+
+Before settling for decode-only, checked whether moving the existing CPUs
+into a newer chassis would unlock ReBAR. It wouldn't have: ReBAR support
+tracks the CPU/chipset generation, not the chassis brand. A Dell community
+thread requesting ReBAR support for PowerEdge "R\*40 and up" implies nothing
+earlier has it - which includes the R630, the same generation (Haswell-EP,
+same era as this box's C240 M4) that looked like an obvious candidate.
+Moving the same CPUs into a same-era chassis of any brand carries the
+identical firmware-level limitation with them. A real fix means new CPUs on
+a newer socket, not a new box for the old parts.
+
 ## Status
 
-Working, end to end. `vainfo` confirms `va_openDriver() returns 0`, driver
-version `26.3.1 (e10792d)`, with MPEG2, H.264, HEVC (10/12-bit and 4:4:4
-included), VP9 and AV1 all listed for both decode and encode.
+Decode works, encode doesn't, and the fork is stuck in it. `vainfo` confirms
+`va_openDriver() returns 0` with the full codec list, but that only ever
+proved the driver, not the pipeline - decode is genuinely in production use
+now (MPEG2/H264/HEVC/VP9/AV1 all confirmed via real transcodes), encode
+fails on frame zero every time regardless of path, and isn't worth further
+debugging on hardware that's structurally capped at 256MB CPU-visible VRAM
+on this platform regardless of the answer.
 
-Cost beyond the original build: two more debugging passes (a redirection
-mechanism that doesn't work how the documentation everywhere says it should,
-and a libva version chosen for looking close instead of being compatible),
-and a genuine operational incident from an unthrottled parallel build on
-shared infrastructure.
+Plan going forward: an NVENC card (Tesla P4 or Quadro T400/T600), which has
+no documented ReBAR dependency and should just work for encode without
+touching any of this. Software `libx264` covers encode until then; hardware
+decode stays on regardless, since it was never the broken half.
 
-Not needed: a new GPU, a new server, migrating off the hypervisor, or a
-forked Jellyfin image. Everything that was wrong was in how the pieces were
-wired together, not in the hardware, the kernel, or the driver fix itself.
+Cost of the whole investigation, decode and encode combined: one guest
+distro upgrade that was worth doing anyway, a driver selection config, a
+container build, two debugging passes on how the driver gets wired into
+Jellyfin, a genuine operational incident from an unthrottled parallel build,
+and ultimately a hardware ceiling that software couldn't route around.
+
+Not needed: a new server, migrating off the hypervisor, or a forked Jellyfin
+image. Needed after all, just not yet bought: a second GPU.

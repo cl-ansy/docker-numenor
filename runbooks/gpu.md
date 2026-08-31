@@ -8,7 +8,7 @@ VM 100, and from there into the Jellyfin container.
 How this configuration was arrived at, including the dead ends, is in
 `notes/gpu-case-study.md`.
 
-## State as of 2026-08-30
+## State as of 2026-08-30 - decode only, encode abandoned
 
 | Layer | State |
 |---|---|
@@ -16,23 +16,93 @@ How this configuration was arrived at, including the dead ends, is in
 | Host | Passed through as `hostpci0` / `hostpci1`, bound to `vfio-pci` |
 | Guest | Debian 13.6, kernel 6.12, driver `xe` (not i915) |
 | Kernel driver | Working. GuC and DMC firmware load, `renderD128` present |
-| VA-API userspace | Working. `media-driver 26.3.1` built against `debian:trixie`, overlaid onto the jellyfin-ffmpeg image |
+| VA-API userspace | `media-driver 26.3.1`, built against `debian:trixie`, overlaid onto the jellyfin-ffmpeg image |
+| Decode | Working. MPEG2, H264, HEVC, VP9, AV1 all confirmed in real transcodes, not just `vainfo` |
+| Encode | **Not working.** Fails on frame zero every time, both via QSV and pure VAAPI. Not pursuing further - see below |
 | BAR | 256MB, can't be enlarged on this platform |
 
 The card gets a 256MB CPU-visible window instead of the 4GB it asks for, because
 the PCI bridges above it decode prefetchable memory as 32-bit only. That's
 firmware-level and can't be fixed here.
 
-The card still works despite it.
+The card still decodes despite it.
 [intel/media-driver#1990](https://github.com/intel/media-driver/pull/1990)
 (merged 2026-07-15) teaches the VA-API driver to allocate inside the visible
-window. Anything older crashes with SIGBUS.
+window. Anything older crashes with SIGBUS on decode too.
 
-`vainfo` confirms it end to end: `va_openDriver() returns 0`, driver version
-`26.3.1 (e10792d)`, with MPEG2, H.264, HEVC (including 10/12-bit and 4:4:4),
-VP9 and AV1 all listed for decode and encode. Remaining task: turn hardware
-acceleration on in Jellyfin's own Dashboard - the driver working doesn't mean
-Jellyfin is using it yet, see the end of this file.
+### Encode doesn't work, and isn't worth chasing further
+
+`vainfo` reports full encode capability - `VAEntrypointEncSliceLP` listed for
+H264, HEVC, VP9 and AV1 - but that's a capability query, not a working
+pipeline. Every real encode attempt failed on the first frame, every time,
+across three different tests:
+
+| Path | Content | Error |
+|---|---|---|
+| QSV (`h264_qsv`, VAAPI-derived) | 1080p Blu-ray remux + subtitle overlay | `Error during encoding: GPU Hang (-21)` |
+| QSV (`h264_qsv`, VAAPI-derived) | 720p Live TV, plain decode+encode | `Invalid FrameType:0` |
+| Pure VAAPI (`h264_vaapi`, no QSV bridge) | 1080p Blu-ray remux + subtitle overlay | `Failed to map output buffers: 24 (internal encoding error)` |
+
+Three different specific errors, but identical failure point every time -
+first frame, at encode submission, never during decode. Two candidate causes,
+not distinguished:
+
+1. **Encode's buffer footprint doesn't fit the 256MB window.** Decode only
+   needs a couple of small reference-frame buffers live at once. Encode needs
+   several reference frames, working buffers, and a pool of coded-output
+   buffers simultaneously - the `24` in the VAAPI error is very likely that
+   pool's size. `gpu.md`'s own small-BAR section already flagged that both
+   decoded input and encoded output funnel through the same 256MB, written
+   before any encode had actually been tried.
+2. **This specific driver build's encode path is simply immature.** Encode is
+   consistently the rougher, later-hardened side of GPU driver development
+   compared to decode, and multiple unrelated community reports describe Arc
+   encode specifically as rockier than decode. This is also a driver built
+   from source today, with zero real-world testing before it hit this exact
+   pipeline.
+
+A lower-resolution encode test would separate these (small encode succeeding
+would point at the BAR; failing identically would point at the driver) but
+wasn't run - decode-only was judged good enough to stop here rather than keep
+debugging a card that structurally can't get more BAR window on this
+platform regardless of the answer.
+
+### Chassis swap doesn't fix this either
+
+Moving the existing CPUs to a different chassis (a Dell PowerEdge R630 was
+considered) wouldn't help. ReBAR support is tied to the CPU/chipset
+generation, not the chassis vendor - Dell's own community forum has a thread
+requesting ReBAR support for PowerEdge "R\*40 and up" (14th generation,
+Skylake-SP era), implying nothing before it, including the R630, has it. The
+R630 is the same generation as this box's Haswell-EP Xeons - moving those
+CPUs into a same-era chassis of any brand carries the limitation with them.
+Actually fixing it means a full platform replacement - new CPUs on a newer
+socket, new RAM - not a chassis swap.
+
+### The actual plan: NVENC, no ReBAR dependency
+
+NVIDIA cards have never had a documented ReBAR requirement for NVENC
+transcoding, unlike the specific small-BAR crash pattern documented for Arc
+([intel/media-driver#1927](https://github.com/intel/media-driver/issues/1927)).
+Best-reasoned explanation, not something verifiable from closed-source
+driver internals the way Intel's open-source driver was: encoded output is
+compressed, and therefore much smaller than the raw frame buffers a decode
+or filter pipeline moves around, so it comfortably fits through any BAR size.
+NVIDIA's driver has also had two decades of production hardening around
+small-BAR-by-default operation, since that was the universal default for
+every GPU before ReBAR existed as a spec at all (~2020).
+
+Candidates, both slot-powered with no auxiliary connector, matching the
+requirement already in the fallback section below: a **Tesla P4** (Pascal,
+75W, HEVC encode but 8-bit only, no AV1) or a **Quadro T400/T600** (Turing,
+~30-40W, meaningfully better NVENC quality than Pascal - up to 25% better
+HEVC bitrate efficiency - still no AV1 encode). Neither matches the A310's
+codec breadth (no AV1 encode on either), but either should just work for
+H264/HEVC encode without touching ReBAR at all.
+
+Current Jellyfin config: hardware acceleration on, decode codecs enabled,
+**"Enable hardware encoding" turned off** - decode is real and worth keeping,
+software `libx264` handles encode until an NVENC card replaces this one.
 
 ### Small BAR does not mean 256MB of VRAM
 
