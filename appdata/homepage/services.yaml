@@ -26,8 +26,6 @@
           url: http://jellyfin:8096
           key: "{{HOMEPAGE_VAR_JELLYFIN_KEY}}"
           enableBlocks: false
-          # Stream count only. Titles and users are nobody else's business on a
-          # shared dashboard, and "is anyone watching" is the summary question.
           enableNowPlaying: false
 
     - TV Tuner:
@@ -37,25 +35,40 @@
         widget:
           type: customapi
           url: http://{{HOMEPAGE_VAR_TV_TUNER}}/status.json
-          display: dynamic-list
+          display: list
           mappings:
-            name: VctNumber
-            label: SignalQualityPercent
-            format: percent
-            limit: 4
-
-    # Jellyseerr is not enabled - uncomment its include in docker-compose-main.yml
-    # first, then set JELLYSEERR_API_KEY in .env and uncomment this block.
-    # - Jellyseerr:
-    #     icon: jellyseerr.png
-    #     href: https://jellyseerr.{{HOMEPAGE_VAR_DOMAIN}}
-    #     description: Media Requests
-    #     server: my-docker
-    #     container: jellyseerr
-    #     widget:
-    #       type: seerr
-    #       url: http://jellyseerr:5055
-    #       key: "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}"
+            - field: 0.VctNumber
+              label: Tuner 0
+              additionalField:
+                field: 0.SignalQualityPercent
+            - field: 0.SignalStrengthPercent
+              label: Tuner 0 Signal
+              additionalField:
+                field: 0.SymbolQualityPercent
+            - field: 1.VctNumber
+              label: Tuner 1
+              additionalField:
+                field: 1.SignalQualityPercent
+            - field: 1.SignalStrengthPercent
+              label: Tuner 1 Signal
+              additionalField:
+                field: 1.SymbolQualityPercent
+            - field: 2.VctNumber
+              label: Tuner 2
+              additionalField:
+                field: 2.SignalQualityPercent
+            - field: 2.SignalStrengthPercent
+              label: Tuner 2 Signal
+              additionalField:
+                field: 2.SymbolQualityPercent
+            - field: 3.VctNumber
+              label: Tuner 3
+              additionalField:
+                field: 3.SignalQualityPercent
+            - field: 3.SignalStrengthPercent
+              label: Tuner 3 Signal
+              additionalField:
+                field: 3.SymbolQualityPercent
 
 - PVR:
     - Radarr:
