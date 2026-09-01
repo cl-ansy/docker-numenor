@@ -28,6 +28,13 @@
           enableBlocks: false
           enableNowPlaying: false
 
+    - Seerr:
+        icon: jellyseerr.png
+        href: https://seerr.{{HOMEPAGE_VAR_DOMAIN}}
+        description: Media Requests
+        server: my-docker
+        container: seerr
+
     - TV Tuner:
         icon: hdhomerun.png
         href: http://{{HOMEPAGE_VAR_TV_TUNER}}
