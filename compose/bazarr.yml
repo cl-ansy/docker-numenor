@@ -1,0 +1,29 @@
+# Bazarr - Subtitle management
+services:
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t3_proxy
+      - downloaders
+      - ops
+    # ports:
+    #   - 6767:6767
+    volumes:
+      - $DOCKERDIR/appdata/bazarr:/config
+      - $SHAREDDIR/media/Movies:/data/movies
+      - $SHAREDDIR/media/Shows:/data/shows
+    environment:
+      PUID: $PUID
+      PGID: $PGID
+      TZ: $TZ
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.bazarr-rtr.entrypoints=websecure
+      - traefik.http.routers.bazarr-rtr.rule=Host(`bazarr.$DOMAINNAME`)
+      - traefik.http.routers.bazarr-rtr.service=bazarr-svc
+      - traefik.http.routers.bazarr-rtr.middlewares=chain-authentik@file
+      - traefik.http.services.bazarr-svc.loadbalancer.server.port=6767

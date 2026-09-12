@@ -90,6 +90,18 @@
                   when: gt
                   value: 0
 
+    - Bazarr:
+        icon: bazarr.png
+        href: https://bazarr.{{HOMEPAGE_VAR_DOMAIN}}
+        description: Subtitle Management
+        server: my-docker
+        container: bazarr
+        widget:
+          type: bazarr
+          url: http://bazarr:6767
+          key: "{{HOMEPAGE_VAR_BAZARR_KEY}}"
+          fields: ["missingEpisodes", "missingMovies"]
+
 - Downloads:
     - SABnzbd:
         icon: sabnzbd.png
