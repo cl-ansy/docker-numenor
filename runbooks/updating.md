@@ -364,8 +364,68 @@ mount | grep nfs
 ls /nfs/<share>/shared/media   # real path; $SHAREDDIR is compose-only
 ```
 
-Proxmox: snapshot both VMs, update from the host shell, and reboot into the new
-kernel while CIMC is reachable.
+### Proxmox
+
+A point release inside the same major version (8.0 to 8.4, for example) is a
+normal `apt` upgrade on the host:
+
+```bash
+apt update
+apt list --upgradable
+apt full-upgrade
+```
+
+`full-upgrade`, not `upgrade` - Proxmox's own docs call for it, because kernel
+package churn between `pve-kernel-*` versions involves removals a plain
+`upgrade` won't do.
+
+`apt update` returning 401s means the host is still pointed at
+`pve-enterprise.list` with no subscription key. Switch it to the
+no-subscription repo before continuing.
+
+Before touching anything:
+
+```bash
+qm listsnapshot 100
+qm listsnapshot 201
+```
+
+Snapshot both VMs if not already there, disk only (see "Snapshot vs backup"
+above - this is exactly the case it's for). Confirm CIMC is reachable before
+rebooting the host itself. A bad kernel or driver leaves it unrecoverable any
+other way.
+
+```bash
+uname -r                            # running kernel
+dpkg -l 'pve-kernel-*' | grep ^ii   # installed kernels
+reboot                              # only if a newer pve-kernel installed
+```
+
+After reboot:
+
+```bash
+pveversion
+qm status 100
+qm status 201
+```
+
+- [ ] Both VMs report `running`, not `internal-error`
+- [ ] `dps` on VM 100 shows nothing restarting
+- [ ] GPU passthrough still decodes (see [gpu.md](gpu.md)) - a host kernel
+      change is the most likely thing to move it, either direction
+- [ ] `https://<domain>` still loads through Authentik
+
+Remove old kernels once confirmed stable - `pve-kernel-*` accumulates in
+`/boot` and can fill it:
+
+```bash
+apt autoremove
+```
+
+A major version jump (8.x to 9.x) is a different, larger procedure than a
+point release - Proxmox publishes a version-specific upgrade checker script
+for that case. Follow their upgrade guide for the specific jump rather than
+treating it as a bigger version of the above; this host hasn't done one yet.
 
 ## Cadence
 
